@@ -58,7 +58,7 @@ export const db = {
 
   login: (email: string) => {
     const data = initializeDB();
-    const restaurant = data.restaurants.find(r => r.id === 1); 
+    const restaurant = data.restaurants.find(r => r.email === email || r.id === 1); 
     if (restaurant) {
       data.currentUser = restaurant.id;
       db.save(data);
@@ -125,6 +125,7 @@ export const db = {
     db.save(data);
   },
 
+  // Categories
   getCategories: (restaurantId: number) => initializeDB().categories.filter(c => c.restaurantId === restaurantId),
   addCategory: (cat: Omit<Category, 'id'>) => {
     const data = initializeDB();
@@ -133,9 +134,20 @@ export const db = {
     db.save(data);
     return newCat;
   },
+  updateCategory: (id: number, updates: Partial<Category>) => {
+    const data = initializeDB();
+    data.categories = data.categories.map(c => c.id === id ? { ...c, ...updates } : c);
+    db.save(data);
+  },
+  deleteCategory: (id: number) => {
+    const data = initializeDB();
+    data.categories = data.categories.filter(c => c.id !== id);
+    data.dishes = data.dishes.filter(d => d.categoryId !== id);
+    db.save(data);
+  },
 
+  // Dishes
   getDishes: (restaurantId: number) => initializeDB().dishes.filter(d => d.restaurantId === restaurantId),
-  
   addDish: (dish: Omit<Dish, 'id'>) => {
     const data = initializeDB();
     const newDish = { ...dish, id: Date.now() };
@@ -143,19 +155,18 @@ export const db = {
     db.save(data);
     return newDish;
   },
-
   updateDish: (id: number, updates: Partial<Dish>) => {
     const data = initializeDB();
     data.dishes = data.dishes.map(d => d.id === id ? { ...d, ...updates } : d);
     db.save(data);
   },
-
   deleteDish: (id: number) => {
     const data = initializeDB();
     data.dishes = data.dishes.filter(d => d.id !== id);
     db.save(data);
   },
 
+  // Orders
   getOrders: (restaurantId: number) => initializeDB().orders.filter(o => o.restaurantId === restaurantId),
   createOrder: (order: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => {
     const data = initializeDB();
@@ -175,6 +186,39 @@ export const db = {
     db.save(data);
   },
 
+  // Reservations
   getReservations: (restaurantId: number) => initializeDB().reservations.filter(r => r.restaurantId === restaurantId),
-  getRatings: (restaurantId: number) => initializeDB().ratings.filter(r => r.restaurantId === restaurantId)
+  getReservationsByPhone: (phone: string, restaurantId: number) => {
+    const data = initializeDB();
+    return data.reservations.filter(r => r.customerPhone === phone && r.restaurantId === restaurantId);
+  },
+  createReservation: (reservation: Omit<Reservation, 'id' | 'status'>) => {
+    const data = initializeDB();
+    const newReservation: Reservation = {
+      ...reservation,
+      id: Date.now(),
+      status: 'pending'
+    };
+    data.reservations.push(newReservation);
+    db.save(data);
+    return newReservation;
+  },
+  updateReservationStatus: (id: number, status: Reservation['status']) => {
+    const data = initializeDB();
+    data.reservations = data.reservations.map(r => r.id === id ? { ...r, status } : r);
+    db.save(data);
+  },
+
+  // Ratings
+  getRatings: (restaurantId: number) => initializeDB().ratings.filter(r => r.restaurantId === restaurantId),
+  updateRatingStatus: (id: number, isApproved: boolean) => {
+    const data = initializeDB();
+    data.ratings = data.ratings.map(r => r.id === id ? { ...r, isApproved } : r);
+    db.save(data);
+  },
+  deleteRating: (id: number) => {
+    const data = initializeDB();
+    data.ratings = data.ratings.filter(r => r.id !== id);
+    db.save(data);
+  }
 };

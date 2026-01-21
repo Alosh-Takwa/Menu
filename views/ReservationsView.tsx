@@ -8,7 +8,6 @@ import SubscriptionGuard from '../components/SubscriptionGuard';
 const ReservationsView: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'settings'>('list');
 
   useEffect(() => {
@@ -18,6 +17,12 @@ const ReservationsView: React.FC = () => {
       setReservations(db.getReservations(res.id));
     }
   }, []);
+
+  const handleStatusUpdate = (id: number, status: Reservation['status']) => {
+    db.updateReservationStatus(id, status);
+    const res = db.getCurrentRestaurant();
+    if (res) setReservations(db.getReservations(res.id));
+  };
 
   const handleSaveSettings = () => {
     if (restaurant) {
@@ -57,7 +62,7 @@ const ReservationsView: React.FC = () => {
                </div>
             ) : (
               reservations.map(res => (
-                <div key={res.id} className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-wrap md:flex-nowrap items-center gap-10 hover:shadow-lg transition-all border-r-8 border-r-blue-600">
+                <div key={res.id} className={`bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-wrap md:flex-nowrap items-center gap-10 hover:shadow-lg transition-all border-r-8 ${res.status === 'confirmed' ? 'border-r-green-500' : res.status === 'cancelled' ? 'border-r-red-500' : 'border-r-blue-600'}`}>
                   <div className="flex-1 min-w-[200px]">
                     <div className="text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest">معلومات العميل</div>
                     <h3 className="text-xl font-black text-gray-800">{res.customerName}</h3>
@@ -74,11 +79,13 @@ const ReservationsView: React.FC = () => {
                   <div className="flex-shrink-0">
                     {res.status === 'pending' ? (
                       <div className="flex gap-3">
-                        <button className="bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-90"><Check size={22} /></button>
-                        <button className="bg-red-50 text-red-600 p-4 rounded-2xl hover:bg-red-100 transition-all active:scale-90"><X size={22} /></button>
+                        <button onClick={() => handleStatusUpdate(res.id, 'confirmed')} className="bg-green-600 text-white p-4 rounded-2xl hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-90"><Check size={22} /></button>
+                        <button onClick={() => handleStatusUpdate(res.id, 'cancelled')} className="bg-red-50 text-red-600 p-4 rounded-2xl hover:bg-red-100 transition-all active:scale-90"><X size={22} /></button>
                       </div>
                     ) : (
-                      <div className="bg-green-50 text-green-600 px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border border-green-100">مؤكد</div>
+                      <div className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border ${res.status === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                        {res.status === 'confirmed' ? 'مؤكد' : 'ملغي'}
+                      </div>
                     )}
                   </div>
                 </div>

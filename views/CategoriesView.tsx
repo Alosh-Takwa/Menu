@@ -7,6 +7,8 @@ import { Category } from '../types';
 const CategoriesView: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
   const [newCat, setNewCat] = useState({ name: '', nameEn: '' });
 
   useEffect(() => {
@@ -16,20 +18,45 @@ const CategoriesView: React.FC = () => {
     }
   }, []);
 
+  const openAddModal = () => {
+    setIsEditMode(false);
+    setNewCat({ name: '', nameEn: '' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (cat: Category) => {
+    setIsEditMode(true);
+    setCurrentId(cat.id);
+    setNewCat({ name: cat.name, nameEn: cat.nameEn });
+    setIsModalOpen(true);
+  };
+
   const handleSave = () => {
     const restaurant = db.getCurrentRestaurant();
     if (!newCat.name || !restaurant) return;
     
-    db.addCategory({
-      restaurantId: restaurant.id,
-      name: newCat.name,
-      nameEn: newCat.nameEn || newCat.name,
-      sortOrder: categories.length + 1
-    });
+    if (isEditMode && currentId) {
+      db.updateCategory(currentId, { name: newCat.name, nameEn: newCat.nameEn });
+    } else {
+      db.addCategory({
+        restaurantId: restaurant.id,
+        name: newCat.name,
+        nameEn: newCat.nameEn || newCat.name,
+        sortOrder: categories.length + 1
+      });
+    }
 
     setCategories(db.getCategories(restaurant.id));
     setIsModalOpen(false);
     setNewCat({ name: '', nameEn: '' });
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا القسم؟ سيتم حذف جميع الأطباق المرتبطة به أيضاً.')) {
+      db.deleteCategory(id);
+      const restaurant = db.getCurrentRestaurant();
+      if (restaurant) setCategories(db.getCategories(restaurant.id));
+    }
   };
 
   return (
@@ -39,7 +66,7 @@ const CategoriesView: React.FC = () => {
           <h1 className="text-3xl font-black text-gray-800 tracking-tight">إدارة الأقسام</h1>
           <p className="text-gray-500 font-medium">نظم أطباقك في أقسام ليسهل على عملائك الاختيار</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 hover:scale-105 active:scale-95">
+        <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 hover:scale-105 active:scale-95">
           <Plus size={22} />
           إضافة قسم جديد
         </button>
@@ -70,8 +97,8 @@ const CategoriesView: React.FC = () => {
                 <td className="px-8 py-6 text-center font-black text-blue-600">{cat.sortOrder}</td>
                 <td className="px-8 py-6 text-center">
                   <div className="flex justify-center gap-3">
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-2xl transition-all shadow-sm"><Edit2 size={16} /></button>
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all shadow-sm"><Trash2 size={16} /></button>
+                    <button onClick={() => openEditModal(cat)} className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-2xl transition-all shadow-sm"><Edit2 size={16} /></button>
+                    <button onClick={() => handleDelete(cat.id)} className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all shadow-sm"><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>
@@ -86,7 +113,7 @@ const CategoriesView: React.FC = () => {
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-4">
                  <div className="p-4 bg-blue-600 text-white rounded-3xl shadow-xl shadow-blue-100"><Layers size={28}/></div>
-                 <h2 className="text-2xl font-black text-gray-800">إضافة قسم جديد</h2>
+                 <h2 className="text-2xl font-black text-gray-800">{isEditMode ? 'تعديل القسم' : 'إضافة قسم جديد'}</h2>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="bg-white p-3 rounded-full text-gray-400 hover:text-gray-600 shadow-sm"><X size={24}/></button>
             </div>
@@ -102,7 +129,9 @@ const CategoriesView: React.FC = () => {
             </div>
             <div className="p-10 bg-gray-50 flex gap-6">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-black text-gray-400 hover:text-gray-600 rounded-2xl transition-all">إلغاء</button>
-              <button onClick={handleSave} className="flex-2 w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">حفظ القسم</button>
+              <button onClick={handleSave} className="flex-2 w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                {isEditMode ? 'تحديث القسم' : 'حفظ القسم'}
+              </button>
             </div>
           </div>
         </div>

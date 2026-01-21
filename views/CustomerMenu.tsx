@@ -1,23 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Star, Clock, Info, QrCode, Download, Share2, X, Plus, Minus, Trash2 } from 'lucide-react';
+import { Search, ShoppingCart, Star, Clock, Info, QrCode, Download, Share2, X, Plus, Minus, Trash2, CalendarCheck, Users, Phone, User, SearchCheck } from 'lucide-react';
 import { MOCK_CATEGORIES, MOCK_RESTAURANT } from '../constants';
 import { db } from '../services/db';
-import { Dish, OrderItem, Restaurant } from '../types';
+import { Dish, OrderItem, Restaurant, Reservation } from '../types';
+import ReservationInquiryView from './ReservationInquiryView';
 
 interface CustomerMenuViewProps {
   isPreview?: boolean;
 }
 
 const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }) => {
-  const [activeCategory, setActiveCategory] = useState(MOCK_CATEGORIES[0].id);
+  const [activeCategory, setActiveCategory] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [showQR, setShowQR] = useState(false);
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isReservationOpen, setIsReservationOpen] = useState(false);
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant>(MOCK_RESTAURANT);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [reservationSuccess, setReservationSuccess] = useState(false);
+
+  // Reservation form state
+  const [reservationForm, setReservationForm] = useState({
+    name: '',
+    phone: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '19:00',
+    guests: 2
+  });
 
   useEffect(() => {
     const res = db.getCurrentRestaurant();
@@ -28,6 +41,10 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
         setDishes(db.getDishes(1));
     }
   }, []);
+
+  if (isInquiryOpen) {
+    return <ReservationInquiryView restaurant={restaurant} onBack={() => setIsInquiryOpen(false)} />;
+  }
 
   const addToCart = (dish: Dish) => {
     setCart(prev => {
@@ -53,6 +70,28 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     }));
   };
 
+  const handleReservationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    db.createReservation({
+      restaurantId: restaurant.id,
+      customerName: reservationForm.name,
+      customerPhone: reservationForm.phone,
+      date: reservationForm.date,
+      time: reservationForm.time,
+      guests: reservationForm.guests
+    });
+    setIsReservationOpen(false);
+    setReservationSuccess(true);
+    setTimeout(() => setReservationSuccess(false), 5000);
+    setReservationForm({
+      name: '',
+      phone: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '19:00',
+      guests: 2
+    });
+  };
+
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   const placeOrder = () => {
@@ -76,8 +115,13 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     dish.name.includes(searchTerm)
   );
 
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + (restaurant.reservationSettings?.advanceBookingDays || 7));
+  const maxDateString = maxDate.toISOString().split('T')[0];
+  const minDateString = new Date().toISOString().split('T')[0];
+
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-20 relative" style={{ fontFamily: restaurant.fontFamily || 'Cairo' }}>
+    <div className="max-w-md mx-auto bg-white min-h-screen pb-24 relative" style={{ fontFamily: restaurant.fontFamily || 'Cairo' }}>
       {isPreview && (
         <div className="text-white p-3 text-center text-xs font-bold sticky top-0 z-50 flex justify-between items-center px-6 shadow-md" style={{ backgroundColor: restaurant.themeColor }}>
           <span>معاينة حيـة لمنيـو مطعمك</span>
@@ -85,16 +129,16 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
         </div>
       )}
 
-      {orderSuccess && (
+      {(orderSuccess || reservationSuccess) && (
         <div className="fixed top-20 inset-x-4 bg-green-600 text-white p-4 rounded-2xl z-[120] flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-500">
            <div className="flex items-center gap-3">
              <div className="bg-white/20 p-2 rounded-full"><ShoppingCart size={20}/></div>
              <div>
-                <p className="font-bold text-sm">تم إرسال طلبك بنجاح!</p>
-                <p className="text-[10px] opacity-80">سيقوم المطبخ بالبدء في تجهيزه فوراً.</p>
+                <p className="font-bold text-sm">{orderSuccess ? 'تم إرسال طلبك بنجاح!' : 'تم إرسال طلب الحجز بنجاح!'}</p>
+                <p className="text-[10px] opacity-80">{orderSuccess ? 'سيقوم المطبخ بالبدء في تجهيزه فوراً.' : 'سنقوم بالتواصل معك لتأكيد الحجز.'}</p>
              </div>
            </div>
-           <button onClick={() => setOrderSuccess(false)}><X size={18}/></button>
+           <button onClick={() => { setOrderSuccess(false); setReservationSuccess(false); }}><X size={18}/></button>
         </div>
       )}
 
@@ -102,14 +146,32 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
       <div className="relative h-48">
         <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-        <div className="absolute bottom-4 right-4 flex items-center gap-3">
-          <img src={restaurant.logo} className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg object-cover" alt="Logo" />
-          <div>
+        <div className="absolute bottom-4 right-4 flex items-center gap-3 w-full px-4">
+          <img src={restaurant.logo} className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg object-cover flex-shrink-0" alt="Logo" />
+          <div className="flex-1">
             <h1 className="text-white text-xl font-black">{restaurant.name}</h1>
             <div className="flex items-center gap-2 text-white/90 text-sm">
               <Star size={14} className="fill-amber-400 text-amber-400" />
               <span>4.8 (1.2k+ تقييم)</span>
             </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            {restaurant.reservationSettings?.isEnabled && (
+              <button 
+                onClick={() => setIsReservationOpen(true)}
+                className="bg-white text-gray-800 px-4 py-2 rounded-xl text-[10px] font-black shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
+              >
+                 <CalendarCheck size={14} style={{ color: restaurant.themeColor }} />
+                 حجز طاولة
+              </button>
+            )}
+            <button 
+              onClick={() => setIsInquiryOpen(true)}
+              className="bg-slate-900/40 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[10px] font-black border border-white/20 flex items-center gap-2 hover:bg-slate-900/60 transition-all whitespace-nowrap"
+            >
+               <SearchCheck size={14} />
+               استعلام حجز
+            </button>
           </div>
         </div>
       </div>
@@ -201,6 +263,92 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
                  <button onClick={placeOrder} className="w-full text-white py-4 rounded-2xl font-black shadow-xl hover:opacity-90 transition-all active:scale-95" style={{ backgroundColor: restaurant.themeColor }}>تأكيد وإرسال الطلب</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Reservation Modal */}
+      {isReservationOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-end justify-center p-0">
+          <div className="bg-white rounded-t-[40px] w-full max-w-md p-8 animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-black text-gray-800">حجز طاولة جديدة</h3>
+              <button onClick={() => setIsReservationOpen(false)} className="bg-gray-100 p-3 rounded-full"><X size={20}/></button>
+            </div>
+            <form onSubmit={handleReservationSubmit} className="space-y-6">
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                   <User size={12}/> الاسم الكريم
+                 </label>
+                 <input 
+                  type="text" 
+                  required
+                  placeholder="أدخل اسمك"
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none" 
+                  style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
+                  value={reservationForm.name}
+                  onChange={e => setReservationForm({...reservationForm, name: e.target.value})}
+                 />
+               </div>
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                   <Phone size={12}/> رقم الجوال
+                 </label>
+                 <input 
+                  type="tel" 
+                  required
+                  placeholder="05xxxxxxxx"
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none" 
+                  style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
+                  value={reservationForm.phone}
+                  onChange={e => setReservationForm({...reservationForm, phone: e.target.value})}
+                 />
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">التاريخ</label>
+                    <input 
+                      type="date" 
+                      required
+                      min={minDateString}
+                      max={maxDateString}
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-xs focus:ring-2 outline-none" 
+                      style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
+                      value={reservationForm.date}
+                      onChange={e => setReservationForm({...reservationForm, date: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">الوقت</label>
+                    <input 
+                      type="time" 
+                      required
+                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-xs focus:ring-2 outline-none" 
+                      style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
+                      value={reservationForm.time}
+                      onChange={e => setReservationForm({...reservationForm, time: e.target.value})}
+                    />
+                  </div>
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <Users size={12}/> عدد الضيوف
+                  </label>
+                  <select 
+                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none cursor-pointer"
+                    style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
+                    value={reservationForm.guests}
+                    onChange={e => setReservationForm({...reservationForm, guests: Number(e.target.value)})}
+                  >
+                    {[...Array(restaurant.reservationSettings?.maxGuests || 10)].map((_, i) => (
+                      <option key={i+1} value={i+1}>{i+1} ضيوف</option>
+                    ))}
+                  </select>
+               </div>
+               <button type="submit" className="w-full text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:opacity-90 transition-all active:scale-95 mt-4" style={{ backgroundColor: restaurant.themeColor }}>
+                 تأكيد حجز الطاولة
+               </button>
+            </form>
+          </div>
         </div>
       )}
 
