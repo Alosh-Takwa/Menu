@@ -1,18 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, Store, CreditCard, Activity, Search, MoreVertical, ShieldAlert, CheckCircle, XCircle, Settings, LayoutGrid, DollarSign, ArrowUpRight, Ban, Eye, Trash2 } from 'lucide-react';
+import { Users, Store, CreditCard, Activity, Search, MoreVertical, ShieldAlert, CheckCircle, XCircle, Settings, LayoutGrid, DollarSign, ArrowUpRight, Ban, Eye, Trash2, Globe, Mail, Phone, ShieldCheck, ToggleLeft, ToggleRight, Save } from 'lucide-react';
 import { PLANS } from '../constants';
 import { db } from '../services/db';
-import { Restaurant, SubscriptionPlan } from '../types';
+import { Restaurant, SubscriptionPlan, PlatformSettings } from '../types';
 
 const AdminView: React.FC = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [activeTab, setActiveTab] = useState<'restaurants' | 'plans' | 'logs'>('restaurants');
+  const [activeTab, setActiveTab] = useState<'restaurants' | 'plans' | 'platform_settings'>('restaurants');
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(db.getPlatformSettings());
 
   useEffect(() => {
     setRestaurants(db.getAllRestaurants());
+    setPlatformSettings(db.getPlatformSettings());
   }, []);
 
   const handleToggleStatus = (id: number, currentStatus: Restaurant['status']) => {
@@ -26,6 +28,11 @@ const AdminView: React.FC = () => {
       db.deleteRestaurant(id);
       setRestaurants(db.getAllRestaurants());
     }
+  };
+
+  const handleSavePlatformSettings = () => {
+    db.updatePlatformSettings(platformSettings);
+    alert('تم حفظ إعدادات المنصة بنجاح!');
   };
 
   const handleChangePlan = (id: number, planId: number) => {
@@ -62,121 +69,207 @@ const AdminView: React.FC = () => {
           <div className="flex gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
              <button onClick={() => setActiveTab('restaurants')} className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'restaurants' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>المطاعم</button>
              <button onClick={() => setActiveTab('plans')} className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'plans' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>الباقات</button>
-             <button onClick={() => setActiveTab('logs')} className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'logs' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>السجلات</button>
+             <button onClick={() => setActiveTab('platform_settings')} className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'platform_settings' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}>إعدادات المنصة</button>
           </div>
         </div>
 
-        {/* Global Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {[
-            { label: 'إجمالي المطاعم', value: stats.total, icon: <Store />, color: 'blue', desc: 'نمو مستمر' },
-            { label: 'نشطة حالياً', value: stats.active, icon: <Activity />, color: 'green', desc: 'نسبة 92%' },
-            { label: 'الإيرادات المتوقعة', value: `${stats.revenue} ر.س`, icon: <DollarSign />, color: 'amber', desc: stats.growth },
-            { label: 'نمو المنصة', value: '+12%', icon: <ArrowUpRight />, color: 'purple', desc: 'آخر 30 يوم' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:translate-y-[-5px]">
-              <div className={`w-14 h-14 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 flex items-center justify-center mb-6`}>
-                {stat.icon}
-              </div>
-              <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">{stat.label}</p>
-              <h4 className="text-3xl font-black text-slate-800 mb-2">{stat.value}</h4>
-              <div className="text-[10px] font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-full inline-block">{stat.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Content Area */}
         {activeTab === 'restaurants' && (
-          <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 mb-1">إدارة المطاعم الشريكة</h3>
-                <p className="text-slate-400 text-sm font-bold italic">قم بمراجعة، تفعيل، أو تعليق أي حساب مطعم.</p>
-              </div>
-              <div className="relative w-full md:w-96">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                <input 
-                  type="text" 
-                  placeholder="بحث باسم المطعم أو الرابط..." 
-                  className="w-full bg-slate-50 border-none rounded-2xl py-4 pr-12 pl-6 text-sm font-bold shadow-inner focus:ring-2 focus:ring-blue-500 transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <table className="w-full text-right">
-              <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-50">
-                <tr>
-                  <th className="px-10 py-5">المطعم ومعلومات التواصل</th>
-                  <th className="px-10 py-5">الباقة الحالية</th>
-                  <th className="px-10 py-5 text-center">حالة الحساب</th>
-                  <th className="px-10 py-5 text-center">الإجراءات والتحكم</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {filteredRestaurants.map(restaurant => (
-                  <tr key={restaurant.id} className="hover:bg-slate-50/30 transition-colors group">
-                    <td className="px-10 py-8 flex items-center gap-6">
-                      <div className="relative">
-                        <img src={restaurant.logo} className="w-16 h-16 rounded-[1.5rem] object-cover border-4 border-white shadow-lg shadow-slate-200" alt="" />
-                        {restaurant.status === 'active' && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white"></div>}
-                      </div>
-                      <div>
-                        <span className="font-black text-slate-800 text-lg block leading-none mb-2">{restaurant.name}</span>
-                        <span className="text-[11px] text-blue-600 font-black tracking-tighter flex items-center gap-2">
-                           <Eye size={12} /> sop.com/{restaurant.slug}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-10 py-8">
-                      <button 
-                        onClick={() => setSelectedRestaurant(restaurant)}
-                        className="bg-white border border-slate-100 px-5 py-2 rounded-xl text-xs font-black text-slate-600 hover:border-blue-600 hover:text-blue-600 transition-all shadow-sm flex items-center gap-3"
-                      >
-                        {PLANS.find(p => p.id === restaurant.planId)?.nameAr}
-                        <Settings size={14} className="text-slate-300" />
-                      </button>
-                    </td>
-                    <td className="px-10 py-8 text-center">
-                      <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
-                        restaurant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'
-                      }`}>
-                        {restaurant.status === 'active' ? 'نشط ومفعل' : 'معلق مؤقتاً'}
-                      </span>
-                    </td>
-                    <td className="px-10 py-8">
-                      <div className="flex justify-center gap-4">
-                         <button 
-                          onClick={() => handleToggleStatus(restaurant.id, restaurant.status)}
-                          className={`p-4 rounded-2xl transition-all shadow-sm ${
-                            restaurant.status === 'active' ? 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'bg-green-50 text-green-500 hover:bg-green-100'
-                          }`}
-                          title={restaurant.status === 'active' ? "تعليق الحساب" : "تنشيط الحساب"}
-                         >
-                           {restaurant.status === 'active' ? <Ban size={20} /> : <CheckCircle size={20} />}
-                         </button>
-                         <button 
-                          onClick={() => handleDelete(restaurant.id)}
-                          className="p-4 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-2xl transition-all shadow-sm group"
-                         >
-                           <Trash2 size={20} />
-                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {filteredRestaurants.length === 0 && (
-              <div className="p-20 text-center">
-                <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-                   <Search size={48} />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {[
+                { label: 'إجمالي المطاعم', value: stats.total, icon: <Store />, color: 'blue', desc: 'نمو مستمر' },
+                { label: 'نشطة حالياً', value: stats.active, icon: <Activity />, color: 'green', desc: 'نسبة 92%' },
+                { label: 'الإيرادات المتوقعة', value: `${stats.revenue} ر.س`, icon: <DollarSign />, color: 'amber', desc: stats.growth },
+                { label: 'نمو المنصة', value: '+12%', icon: <ArrowUpRight />, color: 'purple', desc: 'آخر 30 يوم' },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:translate-y-[-5px]">
+                  <div className={`w-14 h-14 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 flex items-center justify-center mb-6`}>
+                    {stat.icon}
+                  </div>
+                  <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">{stat.label}</p>
+                  <h4 className="text-3xl font-black text-slate-800 mb-2">{stat.value}</h4>
                 </div>
-                <h4 className="text-xl font-black text-slate-400">عذراً، لم نجد أي مطعم يطابق بحثك.</h4>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 mb-1">إدارة المطاعم الشريكة</h3>
+                </div>
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                  <input 
+                    type="text" 
+                    placeholder="بحث باسم المطعم..." 
+                    className="w-full bg-slate-50 border-none rounded-2xl py-4 pr-12 pl-6 text-sm font-bold shadow-inner focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
-            )}
+              
+              <table className="w-full text-right">
+                <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-50">
+                  <tr>
+                    <th className="px-10 py-5">المطعم</th>
+                    <th className="px-10 py-5">الباقة</th>
+                    <th className="px-10 py-5 text-center">الحالة</th>
+                    <th className="px-10 py-5 text-center">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredRestaurants.map(restaurant => (
+                    <tr key={restaurant.id} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="px-10 py-8 flex items-center gap-6">
+                        <img src={restaurant.logo} className="w-16 h-16 rounded-[1.5rem] object-cover border-4 border-white shadow-lg" alt="" />
+                        <div>
+                          <span className="font-black text-slate-800 text-lg block leading-none mb-2">{restaurant.name}</span>
+                          <span className="text-[11px] text-blue-600 font-black">sop.com/{restaurant.slug}</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <button onClick={() => setSelectedRestaurant(restaurant)} className="bg-white border border-slate-100 px-5 py-2 rounded-xl text-xs font-black text-slate-600 hover:border-blue-600 hover:text-blue-600 transition-all shadow-sm flex items-center gap-3">
+                          {PLANS.find(p => p.id === restaurant.planId)?.nameAr}
+                          <Settings size={14} className="text-slate-300" />
+                        </button>
+                      </td>
+                      <td className="px-10 py-8 text-center">
+                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
+                          restaurant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'
+                        }`}>
+                          {restaurant.status === 'active' ? 'نشط' : 'معلق'}
+                        </span>
+                      </td>
+                      <td className="px-10 py-8">
+                        <div className="flex justify-center gap-4">
+                           <button onClick={() => handleToggleStatus(restaurant.id, restaurant.status)} className={`p-4 rounded-2xl transition-all shadow-sm ${restaurant.status === 'active' ? 'bg-rose-50 text-rose-500' : 'bg-green-50 text-green-500'}`}>
+                             {restaurant.status === 'active' ? <Ban size={20} /> : <CheckCircle size={20} />}
+                           </button>
+                           <button onClick={() => handleDelete(restaurant.id)} className="p-4 bg-red-50 text-red-400 rounded-2xl transition-all shadow-sm"><Trash2 size={20} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'platform_settings' && (
+          <div className="bg-white rounded-[3.5rem] p-12 border border-slate-100 shadow-sm max-w-4xl mx-auto animate-in fade-in zoom-in duration-300">
+             <div className="flex items-center gap-4 mb-12">
+                <div className="p-4 bg-blue-600 text-white rounded-3xl"><Globe size={24} /></div>
+                <div>
+                   <h2 className="text-3xl font-black text-slate-800">إعدادات المنصة العامة</h2>
+                   <p className="text-slate-400 font-bold">تحكم في هوية المنصة، بيانات التواصل، وحالة التشغيل.</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-6">
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">اسم الموقع / المنصة</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={platformSettings.siteName}
+                        onChange={e => setPlatformSettings({...platformSettings, siteName: e.target.value})}
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">بريد الدعم الفني</label>
+                      <div className="relative">
+                         <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                         <input 
+                            type="email" 
+                            className="w-full bg-slate-50 border-none rounded-2xl pr-14 pl-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={platformSettings.supportEmail}
+                            onChange={e => setPlatformSettings({...platformSettings, supportEmail: e.target.value})}
+                         />
+                      </div>
+                   </div>
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">رقم تواصل الدعم</label>
+                      <div className="relative">
+                         <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                         <input 
+                            type="text" 
+                            className="w-full bg-slate-50 border-none rounded-2xl pr-14 pl-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={platformSettings.supportPhone}
+                            onChange={e => setPlatformSettings({...platformSettings, supportPhone: e.target.value})}
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                <div className="space-y-6">
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">رابط إنستقرام</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={platformSettings.instagramUrl}
+                        onChange={e => setPlatformSettings({...platformSettings, instagramUrl: e.target.value})}
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">رابط تويتر (X)</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={platformSettings.twitterUrl}
+                        onChange={e => setPlatformSettings({...platformSettings, twitterUrl: e.target.value})}
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">رابط فيسبوك</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={platformSettings.facebookUrl}
+                        onChange={e => setPlatformSettings({...platformSettings, facebookUrl: e.target.value})}
+                      />
+                   </div>
+                </div>
+
+                <div className="md:col-span-2">
+                   <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest px-1">نص الفوتر (Footer)</label>
+                   <textarea 
+                      rows={3}
+                      className="w-full bg-slate-50 border-none rounded-3xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                      value={platformSettings.footerText}
+                      onChange={e => setPlatformSettings({...platformSettings, footerText: e.target.value})}
+                   />
+                </div>
+
+                <div className="md:col-span-2 p-8 bg-slate-900 rounded-[32px] flex items-center justify-between text-white shadow-2xl">
+                   <div className="flex items-center gap-4">
+                      <ShieldAlert className="text-amber-500" size={28} />
+                      <div>
+                         <p className="font-black text-lg">وضع الصيانة (Maintenance Mode)</p>
+                         <p className="text-xs text-slate-400 font-bold uppercase">إيقاف واجهة المستخدم مؤقتاً لأعمال التطوير</p>
+                      </div>
+                   </div>
+                   <button 
+                    onClick={() => setPlatformSettings({...platformSettings, isMaintenanceMode: !platformSettings.isMaintenanceMode})}
+                   >
+                      {platformSettings.isMaintenanceMode ? <ToggleRight size={56} className="text-blue-500" /> : <ToggleLeft size={56} className="text-slate-700" />}
+                   </button>
+                </div>
+             </div>
+
+             <div className="mt-12 pt-10 border-t border-slate-50 flex gap-4">
+                <button 
+                  onClick={handleSavePlatformSettings} 
+                  className="flex-1 py-5 bg-blue-600 text-white font-black rounded-3xl shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3 active:scale-95"
+                >
+                  <Save size={20} />
+                  حفظ التعديلات العامة
+                </button>
+                <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-100 text-slate-400 font-black rounded-3xl hover:bg-slate-200 transition-all">تراجع</button>
+             </div>
           </div>
         )}
 
@@ -184,7 +277,6 @@ const AdminView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
              {PLANS.map(plan => (
                 <div key={plan.id} className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-2xl transition-all">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -translate-y-16 translate-x-16 opacity-30 group-hover:scale-150 transition-transform duration-1000"></div>
                    <h3 className="text-3xl font-black text-slate-800 mb-2">{plan.nameAr}</h3>
                    <div className="flex items-baseline gap-2 mb-8">
                       <span className="text-5xl font-black text-blue-600">{plan.price}</span>
@@ -197,7 +289,7 @@ const AdminView: React.FC = () => {
                          </li>
                       ))}
                    </ul>
-                   <button className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-blue-600 transition-all active:scale-95">تعديل الباقة</button>
+                   <button className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-blue-600 transition-all">تعديل الباقة</button>
                 </div>
              ))}
           </div>
@@ -206,11 +298,9 @@ const AdminView: React.FC = () => {
         {/* Change Plan Modal */}
         {selectedRestaurant && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[150] flex items-center justify-center p-6" onClick={() => setSelectedRestaurant(null)}>
-             <div className="bg-white rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl animate-in zoom-in duration-300 relative overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -translate-y-16 translate-x-16 opacity-50"></div>
+             <div className="bg-white rounded-[3.5rem] p-12 w-full max-w-xl shadow-2xl relative overflow-hidden animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
                 <h3 className="text-3xl font-black text-slate-800 mb-2 relative">تعديل باقة المطعم</h3>
                 <p className="text-slate-400 font-bold text-sm mb-10 relative">تغيير الباقة لمطعم: <span className="text-blue-600">{selectedRestaurant.name}</span></p>
-                
                 <div className="grid grid-cols-1 gap-5 mb-12 relative">
                    {PLANS.map(plan => (
                       <button 
@@ -235,7 +325,6 @@ const AdminView: React.FC = () => {
                       </button>
                    ))}
                 </div>
-                
                 <div className="flex gap-4 relative">
                    <button onClick={() => setSelectedRestaurant(null)} className="flex-1 py-5 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-slate-800 transition-all active:scale-95">إلغاء</button>
                 </div>

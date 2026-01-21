@@ -1,5 +1,5 @@
 
-import { Dish, Order, Reservation, Rating, Category, Restaurant, SubscriptionPlan } from '../types';
+import { Dish, Order, Reservation, Rating, Category, Restaurant, SubscriptionPlan, PlatformSettings } from '../types';
 import { MOCK_DISHES, MOCK_CATEGORIES, MOCK_RESTAURANT, MOCK_ORDERS, PLANS } from '../constants';
 
 const DB_KEY = 'SOP_DATABASE_V3';
@@ -12,6 +12,7 @@ interface Database {
   reservations: Reservation[];
   ratings: Rating[];
   plans: SubscriptionPlan[];
+  platformSettings: PlatformSettings;
   currentUser: number | null; 
 }
 
@@ -35,12 +36,18 @@ const initializeDB = (): Database => {
     dishes: MOCK_DISHES,
     orders: MOCK_ORDERS,
     plans: PLANS,
-    reservations: [
-      { id: 1, restaurantId: 1, customerName: 'سلمان الفهد', customerPhone: '055112233', date: '2023-12-01', time: '19:00', guests: 4, status: 'pending' }
-    ],
-    ratings: [
-      { id: 1, restaurantId: 1, customerName: 'أحمد علي', rating: 5, comment: 'تجربة رائعة!', isApproved: true, createdAt: new Date().toISOString() }
-    ],
+    platformSettings: {
+      siteName: 'SOP POS - نظام إدارة المطاعم',
+      supportEmail: 'support@sop-pos.com',
+      supportPhone: '+966 500 000 000',
+      facebookUrl: 'https://facebook.com',
+      twitterUrl: 'https://twitter.com',
+      instagramUrl: 'https://instagram.com',
+      footerText: 'نظام SOP POS - الحل الأمثل لإدارة المطاعم في المملكة والشرق الأوسط.',
+      isMaintenanceMode: false
+    },
+    reservations: [],
+    ratings: [],
     currentUser: null
   };
   localStorage.setItem(DB_KEY, JSON.stringify(initialDB));
@@ -99,6 +106,13 @@ export const db = {
 
   getAllRestaurants: () => initializeDB().restaurants,
   
+  getPlatformSettings: () => initializeDB().platformSettings,
+  updatePlatformSettings: (settings: PlatformSettings) => {
+    const data = initializeDB();
+    data.platformSettings = settings;
+    db.save(data);
+  },
+
   updateRestaurant: (id: number, updates: Partial<Restaurant>) => {
     const data = initializeDB();
     data.restaurants = data.restaurants.map(r => r.id === id ? { ...r, ...updates } : r);
@@ -125,7 +139,7 @@ export const db = {
     db.save(data);
   },
 
-  // Categories
+  // Categories & Dishes
   getCategories: (restaurantId: number) => initializeDB().categories.filter(c => c.restaurantId === restaurantId),
   addCategory: (cat: Omit<Category, 'id'>) => {
     const data = initializeDB();
@@ -146,7 +160,6 @@ export const db = {
     db.save(data);
   },
 
-  // Dishes
   getDishes: (restaurantId: number) => initializeDB().dishes.filter(d => d.restaurantId === restaurantId),
   addDish: (dish: Omit<Dish, 'id'>) => {
     const data = initializeDB();

@@ -57,7 +57,7 @@ export interface ReservationSettings {
   slotDuration: number;
   maxGuests: number;
   isEnabled: boolean;
-  advanceBookingDays: number; // عدد الأيام المسموح بالحجز قبلها
+  advanceBookingDays: number;
 }
 
 export interface Reservation {
@@ -97,4 +97,15 @@ export interface Restaurant {
   socialLinks: { platform: string; url: string }[];
   email?: string;
   reservationSettings?: ReservationSettings;
+}
+
+export interface PlatformSettings {
+  siteName: string;
+  supportEmail: string;
+  supportPhone: string;
+  facebookUrl: string;
+  twitterUrl: string;
+  instagramUrl: string;
+  footerText: string;
+  isMaintenanceMode: boolean;
 }
