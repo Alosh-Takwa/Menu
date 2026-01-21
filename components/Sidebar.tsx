@@ -3,6 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, 
   UtensilsCrossed, 
+  Layers,
   ListOrdered, 
   Settings, 
   BarChart3, 
@@ -21,6 +22,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', name: 'لوحة التحكم', icon: <LayoutDashboard size={20} /> },
+    { id: 'categories', name: 'الأقسام', icon: <Layers size={20} /> },
     { id: 'dishes', name: 'إدارة الأطباق', icon: <UtensilsCrossed size={20} /> },
     { id: 'orders', name: 'إدارة الطلبات', icon: <ListOrdered size={20} /> },
     { id: 'reservations', name: 'الحجوزات', icon: <CalendarCheck size={20} /> },

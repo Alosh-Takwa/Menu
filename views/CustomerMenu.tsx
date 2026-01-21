@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ShoppingCart, Star, Clock, Info, QrCode, Download, Share2, X, Plus, Minus, Trash2 } from 'lucide-react';
 import { MOCK_CATEGORIES, MOCK_RESTAURANT } from '../constants';
 import { db } from '../services/db';
-import { Dish, OrderItem } from '../types';
+import { Dish, OrderItem, Restaurant } from '../types';
 
 interface CustomerMenuViewProps {
   isPreview?: boolean;
@@ -16,11 +16,17 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [restaurant, setRestaurant] = useState<Restaurant>(MOCK_RESTAURANT);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   useEffect(() => {
-    // Fix: Added restaurantId argument (1) to db.getDishes
-    setDishes(db.getDishes(1));
+    const res = db.getCurrentRestaurant();
+    if (res) {
+        setRestaurant(res);
+        setDishes(db.getDishes(res.id));
+    } else {
+        setDishes(db.getDishes(1));
+    }
   }, []);
 
   const addToCart = (dish: Dish) => {
@@ -52,7 +58,7 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
   const placeOrder = () => {
     if (cart.length === 0) return;
     db.createOrder({
-      restaurantId: 1,
+      restaurantId: restaurant.id,
       customerName: 'عميل من المنيو الإلكتروني',
       customerPhone: '05xxxxxxxx',
       total: cartTotal,
@@ -71,10 +77,10 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
   );
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-20 relative font-sans">
+    <div className="max-w-md mx-auto bg-white min-h-screen pb-20 relative" style={{ fontFamily: restaurant.fontFamily || 'Cairo' }}>
       {isPreview && (
-        <div className="bg-blue-600 text-white p-3 text-center text-xs font-bold sticky top-0 z-50 flex justify-between items-center px-6 shadow-md">
-          <span>هذه معاينة لمنيـو مطعمك</span>
+        <div className="text-white p-3 text-center text-xs font-bold sticky top-0 z-50 flex justify-between items-center px-6 shadow-md" style={{ backgroundColor: restaurant.themeColor }}>
+          <span>معاينة حيـة لمنيـو مطعمك</span>
           <button onClick={() => setShowQR(true)} className="bg-white/20 hover:bg-white/30 p-1.5 rounded-lg flex items-center gap-1 transition-all"><QrCode size={14} /> الرمز</button>
         </div>
       )}
@@ -97,9 +103,9 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
         <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Banner" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
         <div className="absolute bottom-4 right-4 flex items-center gap-3">
-          <img src={MOCK_RESTAURANT.logo} className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg" alt="Logo" />
+          <img src={restaurant.logo} className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg object-cover" alt="Logo" />
           <div>
-            <h1 className="text-white text-xl font-black">{MOCK_RESTAURANT.name}</h1>
+            <h1 className="text-white text-xl font-black">{restaurant.name}</h1>
             <div className="flex items-center gap-2 text-white/90 text-sm">
               <Star size={14} className="fill-amber-400 text-amber-400" />
               <span>4.8 (1.2k+ تقييم)</span>
@@ -109,27 +115,27 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
       </div>
 
       <div className="flex justify-around py-4 border-b border-gray-100 bg-gray-50/30">
-        <div className="flex flex-col items-center"><Clock size={16} className="text-blue-600 mb-1"/><span className="text-[10px] text-gray-500 font-bold uppercase">التحضير</span><span className="text-xs font-black">20-30 د</span></div>
-        <div className="flex flex-col items-center"><Info size={16} className="text-blue-600 mb-1"/><span className="text-[10px] text-gray-500 font-bold uppercase">الحالة</span><span className="text-xs font-black text-green-600">مفتوح</span></div>
-        <div className="flex flex-col items-center"><ShoppingCart size={16} className="text-blue-600 mb-1"/><span className="text-[10px] text-gray-500 font-bold uppercase">الأدنى</span><span className="text-xs font-black">40 ر.س</span></div>
+        <div className="flex flex-col items-center"><Clock size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">التحضير</span><span className="text-xs font-black">20-30 د</span></div>
+        <div className="flex flex-col items-center"><Info size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">الحالة</span><span className="text-xs font-black text-green-600">مفتوح</span></div>
+        <div className="flex flex-col items-center"><ShoppingCart size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">الأدنى</span><span className="text-xs font-black">40 {restaurant.currency}</span></div>
       </div>
 
       <div className="p-4">
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input type="text" placeholder="ابحث عن طبق..." className="w-full bg-gray-100 border-none rounded-2xl py-3 pr-10 pl-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="ابحث عن طبق..." className="w-full bg-gray-100 border-none rounded-2xl py-3 pr-10 pl-4 text-sm focus:ring-2 outline-none" style={{ ['--tw-ring-color' as any]: restaurant.themeColor }} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto px-4 py-2 no-scrollbar whitespace-nowrap">
-        <button onClick={() => setActiveCategory(0)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === 0 ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`}>الكل</button>
+        <button onClick={() => setActiveCategory(0)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === 0 ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`} style={activeCategory === 0 ? { backgroundColor: restaurant.themeColor } : {}}>الكل</button>
         {MOCK_CATEGORIES.map(cat => (
-          <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === cat.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`}>{cat.name}</button>
+          <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === cat.id ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`} style={activeCategory === cat.id ? { backgroundColor: restaurant.themeColor } : {}}>{cat.name}</button>
         ))}
       </div>
 
       <div className="px-4 py-6 space-y-6">
-        <h2 className="text-lg font-black text-gray-800 border-r-4 border-blue-600 pr-3">{activeCategory === 0 ? 'قائمة الطعام' : MOCK_CATEGORIES.find(c => c.id === activeCategory)?.name}</h2>
+        <h2 className="text-lg font-black text-gray-800 border-r-4 pr-3" style={{ borderRightColor: restaurant.themeColor }}>{activeCategory === 0 ? 'قائمة الطعام' : MOCK_CATEGORIES.find(c => c.id === activeCategory)?.name}</h2>
         {filteredDishes.map(dish => (
           <div key={dish.id} className="flex gap-4 group">
             <div className="relative overflow-hidden rounded-2xl shadow-sm w-24 h-24 flex-shrink-0 bg-gray-100">
@@ -141,9 +147,9 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
                 <p className="text-[11px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">{dish.description}</p>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-blue-600 font-black text-sm">{dish.price} ر.س</span>
+                <span className="font-black text-sm" style={{ color: restaurant.themeColor }}>{dish.price} {restaurant.currency}</span>
                 {!isPreview && (
-                   <button onClick={() => addToCart(dish)} className="bg-blue-600 text-white w-8 h-8 rounded-xl flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all shadow-md">+</button>
+                   <button onClick={() => addToCart(dish)} className="text-white w-8 h-8 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-90 transition-all shadow-md" style={{ backgroundColor: restaurant.themeColor }}>+</button>
                 )}
               </div>
             </div>
@@ -153,12 +159,12 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
 
       {!isPreview && cart.length > 0 && (
          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-[90]">
-           <button onClick={() => setIsCartOpen(true)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl flex justify-between px-6 items-center hover:bg-blue-700 transition-all">
+           <button onClick={() => setIsCartOpen(true)} className="w-full text-white py-4 rounded-2xl font-black shadow-2xl flex justify-between px-6 items-center hover:opacity-90 transition-all" style={{ backgroundColor: restaurant.themeColor }}>
              <div className="flex items-center gap-3">
                <span className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center text-xs">{cart.reduce((a, b) => a + b.quantity, 0)}</span>
                <span className="text-sm">سلة المشتريات</span>
              </div>
-             <span className="text-sm">{cartTotal} ر.س</span>
+             <span className="text-sm">{cartTotal} {restaurant.currency}</span>
            </button>
          </div>
       )}
@@ -176,12 +182,12 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
                     <div key={item.dishId} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
                        <div className="flex-1">
                           <h4 className="font-bold text-gray-800 text-sm">{item.dishName}</h4>
-                          <p className="text-blue-600 font-bold text-xs">{item.price} ر.س</p>
+                          <p className="font-bold text-xs" style={{ color: restaurant.themeColor }}>{item.price} {restaurant.currency}</p>
                        </div>
                        <div className="flex items-center gap-3 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
                           <button onClick={() => updateQty(item.dishId, -1)} className="w-6 h-6 flex items-center justify-center text-gray-400"><Minus size={14}/></button>
                           <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.dishId, 1)} className="w-6 h-6 flex items-center justify-center text-blue-600"><Plus size={14}/></button>
+                          <button onClick={() => updateQty(item.dishId, 1)} className="w-6 h-6 flex items-center justify-center" style={{ color: restaurant.themeColor }}><Plus size={14}/></button>
                        </div>
                        <button onClick={() => removeFromCart(item.dishId)} className="mr-3 text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
                     </div>
@@ -190,9 +196,9 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
               <div className="border-t border-gray-100 pt-6 space-y-4">
                  <div className="flex justify-between text-lg">
                     <span className="text-gray-500 font-bold">الإجمالي النهائي</span>
-                    <span className="text-blue-600 font-black">{cartTotal} ر.س</span>
+                    <span className="font-black" style={{ color: restaurant.themeColor }}>{cartTotal} {restaurant.currency}</span>
                  </div>
-                 <button onClick={placeOrder} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all active:scale-95">تأكيد وإرسال الطلب</button>
+                 <button onClick={placeOrder} className="w-full text-white py-4 rounded-2xl font-black shadow-xl hover:opacity-90 transition-all active:scale-95" style={{ backgroundColor: restaurant.themeColor }}>تأكيد وإرسال الطلب</button>
               </div>
            </div>
         </div>
@@ -202,11 +208,11 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[130] flex items-center justify-center p-6" onClick={() => setShowQR(false)}>
            <div className="bg-white rounded-[40px] p-10 w-full max-w-xs text-center space-y-6 animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
               <div className="bg-gray-50 p-6 rounded-3xl border-4 border-dashed border-gray-200">
-                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://sop-pos.com/${MOCK_RESTAURANT.slug}`} className="w-full h-auto mx-auto" alt="QR Code" />
+                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://sop-pos.com/${restaurant.slug}`} className="w-full h-auto mx-auto" alt="QR Code" />
               </div>
-              <div><h3 className="font-black text-xl text-gray-800 mb-1">{MOCK_RESTAURANT.name}</h3><p className="text-gray-400 text-xs font-bold uppercase tracking-wider">المنيو الإلكتروني</p></div>
+              <div><h3 className="font-black text-xl text-gray-800 mb-1">{restaurant.name}</h3><p className="text-gray-400 text-xs font-bold uppercase tracking-wider">المنيو الإلكتروني</p></div>
               <div className="flex gap-2">
-                 <button className="flex-1 bg-blue-600 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700"><Download size={18} /> تحميل</button>
+                 <button className="flex-1 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90" style={{ backgroundColor: restaurant.themeColor }}><Download size={18} /> تحميل</button>
                  <button className="bg-gray-100 text-gray-400 p-3 rounded-2xl hover:bg-gray-200"><Share2 size={18} /></button>
               </div>
            </div>

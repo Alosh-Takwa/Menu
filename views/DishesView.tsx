@@ -1,50 +1,100 @@
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Wand2, Check, X, ChefHat } from 'lucide-react';
-import { MOCK_CATEGORIES } from '../constants';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Search, Edit2, Trash2, Wand2, Check, X, ChefHat, Image as ImageIcon, Upload, AlertTriangle } from 'lucide-react';
 import { db } from '../services/db';
-import { Dish } from '../types';
+import { Dish, Category, Restaurant } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
 const DishesView: React.FC = () => {
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentDishId, setCurrentDishId] = useState<number | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [newDish, setNewDish] = useState<Partial<Dish>>({
     name: '',
     description: '',
     price: 0,
-    categoryId: MOCK_CATEGORIES[0].id,
+    categoryId: 0,
     isAvailable: true,
-    preparationTime: 20
+    preparationTime: 20,
+    image: ''
   });
 
   useEffect(() => {
-    const restaurant = db.getCurrentRestaurant();
-    if (restaurant) {
-      setDishes(db.getDishes(restaurant.id));
+    const res = db.getCurrentRestaurant();
+    if (res) {
+      setRestaurant(res);
+      const cats = db.getCategories(res.id);
+      setCategories(cats);
+      setDishes(db.getDishes(res.id));
+      if (cats.length > 0) {
+        setNewDish(prev => ({ ...prev, categoryId: cats[0].id }));
+      }
     }
   }, []);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setImagePreview(base64);
+        setNewDish(prev => ({ ...prev, image: base64 }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const openAddModal = () => {
+    setIsEditMode(false);
+    setImagePreview(null);
+    setNewDish({ name: '', description: '', price: 0, categoryId: categories[0]?.id || 0, image: '', isAvailable: true });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (dish: Dish) => {
+    setIsEditMode(true);
+    setCurrentDishId(dish.id);
+    setImagePreview(dish.image);
+    setNewDish({ ...dish });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا الطبق؟')) {
+      db.deleteDish(id);
+      setDishes(db.getDishes(restaurant?.id || 0));
+    }
+  };
+
   const handleSave = () => {
-    const restaurant = db.getCurrentRestaurant();
     if (!newDish.name || !newDish.price || !restaurant) return;
     
-    db.addDish({
-      restaurantId: restaurant.id,
-      name: newDish.name || '',
-      nameEn: newDish.name || '',
-      description: newDish.description || '',
-      price: Number(newDish.price),
-      categoryId: newDish.categoryId || 1,
-      image: `https://picsum.photos/seed/${Date.now()}/400/300`,
-      isAvailable: true,
-      preparationTime: newDish.preparationTime || 20
-    });
+    if (isEditMode && currentDishId) {
+      db.updateDish(currentDishId, newDish);
+    } else {
+      db.addDish({
+        restaurantId: restaurant.id,
+        name: newDish.name || '',
+        nameEn: newDish.name || '',
+        description: newDish.description || '',
+        price: Number(newDish.price),
+        categoryId: newDish.categoryId || categories[0]?.id || 1,
+        image: newDish.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=200',
+        isAvailable: newDish.isAvailable ?? true,
+        preparationTime: newDish.preparationTime || 20
+      });
+    }
 
     setDishes(db.getDishes(restaurant.id));
     setIsModalOpen(false);
-    setNewDish({ name: '', description: '', price: 0, categoryId: MOCK_CATEGORIES[0].id });
   };
 
   const generateAIDescription = async () => {
@@ -69,9 +119,9 @@ const DishesView: React.FC = () => {
       <div className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-black text-gray-800 tracking-tight">إدارة قائمة الطعام</h1>
-          <p className="text-gray-500 font-medium">تحكم في أطباقك، أسعارك، وتوافر الوجبات</p>
+          <p className="text-gray-500 font-medium">تحكم في أطباقك، أسعارك ({restaurant?.currency})، وتوافر الوجبات</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 hover:scale-105 active:scale-95">
+        <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 hover:scale-105 active:scale-95">
           <Plus size={22} />
           إضافة طبق جديد
         </button>
@@ -85,7 +135,7 @@ const DishesView: React.FC = () => {
           </div>
           <select className="bg-white border-none rounded-2xl py-3 px-6 text-sm font-black shadow-sm focus:ring-2 focus:ring-blue-500 cursor-pointer">
             <option>جميع الأقسام</option>
-            {MOCK_CATEGORIES.map(c => <option key={c.id}>{c.name}</option>)}
+            {categories.map(c => <option key={c.id}>{c.name}</option>)}
           </select>
         </div>
 
@@ -111,8 +161,8 @@ const DishesView: React.FC = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-6"><span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-black">{MOCK_CATEGORIES.find(c => c.id === dish.categoryId)?.name}</span></td>
-                <td className="px-8 py-6 text-center font-black text-blue-600">{dish.price} ر.س</td>
+                <td className="px-8 py-6"><span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-black">{categories.find(c => c.id === dish.categoryId)?.name}</span></td>
+                <td className="px-8 py-6 text-center font-black text-blue-600">{dish.price} {restaurant?.currency}</td>
                 <td className="px-8 py-6 text-center">
                   <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black ${dish.isAvailable ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                     {dish.isAvailable ? 'متاح' : 'مباع'}
@@ -120,8 +170,8 @@ const DishesView: React.FC = () => {
                 </td>
                 <td className="px-8 py-6 text-center">
                   <div className="flex justify-center gap-3">
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-2xl transition-all shadow-sm"><Edit2 size={16} /></button>
-                    <button className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all shadow-sm"><Trash2 size={16} /></button>
+                    <button onClick={() => openEditModal(dish)} className="p-3 bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-2xl transition-all shadow-sm"><Edit2 size={16} /></button>
+                    <button onClick={() => handleDelete(dish.id)} className="p-3 bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all shadow-sm"><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>
@@ -136,11 +186,31 @@ const DishesView: React.FC = () => {
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-4">
                  <div className="p-4 bg-blue-600 text-white rounded-3xl shadow-xl shadow-blue-100"><ChefHat size={28}/></div>
-                 <h2 className="text-2xl font-black text-gray-800">إضافة طبق للمنيو</h2>
+                 <h2 className="text-2xl font-black text-gray-800">{isEditMode ? 'تعديل بيانات الطبق' : 'إضافة طبق جديد'}</h2>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="bg-white p-3 rounded-full text-gray-400 hover:text-gray-600 shadow-sm"><X size={24}/></button>
             </div>
-            <div className="p-10 grid grid-cols-2 gap-8">
+            <div className="p-10 grid grid-cols-2 gap-8 max-h-[70vh] overflow-y-auto">
+              <div className="col-span-2">
+                 <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">صورة الطبق</label>
+                 <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-48 border-4 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-blue-200 transition-all overflow-hidden group"
+                 >
+                    {imagePreview ? (
+                      <div className="relative w-full h-full">
+                        <img src={imagePreview} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-black text-sm">تغيير الصورة</div>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload size={32} className="text-gray-300 mb-2" />
+                        <span className="text-sm font-bold text-gray-400">اضغط لرفع صورة من جهازك</span>
+                      </>
+                    )}
+                    <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleImageChange} />
+                 </div>
+              </div>
               <div className="col-span-2">
                 <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">اسم الطبق</label>
                 <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value={newDish.name} onChange={(e) => setNewDish({...newDish, name: e.target.value})} placeholder="مثال: مندي حضرمي أصيل" />
@@ -152,22 +222,35 @@ const DishesView: React.FC = () => {
                     {aiLoading ? 'جاري التوليد...' : <><Wand2 size={14} /> توليد بالذكاء الاصطناعي</>}
                   </button>
                 </div>
-                <textarea rows={4} className="w-full bg-gray-50 border-none rounded-3xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm resize-none" value={newDish.description} onChange={(e) => setNewDish({...newDish, description: e.target.value})} placeholder="أخبرنا عن سر لذة هذا الطبق..." />
+                <textarea rows={3} className="w-full bg-gray-50 border-none rounded-3xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm resize-none" value={newDish.description} onChange={(e) => setNewDish({...newDish, description: e.target.value})} placeholder="أخبرنا عن سر لذة هذا الطبق..." />
               </div>
               <div>
-                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">السعر (ر.س)</label>
+                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">السعر ({restaurant?.currency})</label>
                 <input type="number" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value={newDish.price} onChange={(e) => setNewDish({...newDish, price: Number(e.target.value)})} placeholder="0.00" />
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">القسم</label>
                 <select className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer" value={newDish.categoryId} onChange={(e) => setNewDish({...newDish, categoryId: Number(e.target.value)})}>
-                  {MOCK_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div className="col-span-2">
+                 <label className="flex items-center gap-3 cursor-pointer bg-gray-50 p-4 rounded-2xl">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded border-none bg-white text-blue-600 focus:ring-0" 
+                      checked={newDish.isAvailable} 
+                      onChange={e => setNewDish({...newDish, isAvailable: e.target.checked})} 
+                    />
+                    <span className="font-black text-sm text-gray-700">الطبق متاح حالياً للطلب</span>
+                 </label>
               </div>
             </div>
             <div className="p-10 bg-gray-50 flex gap-6">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 font-black text-gray-400 hover:text-gray-600 rounded-2xl transition-all">إلغاء</button>
-              <button onClick={handleSave} className="flex-2 w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">حفظ وإضافة للمنيو</button>
+              <button onClick={handleSave} className="flex-2 w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                {isEditMode ? 'تحديث البيانات' : 'حفظ الطبق'}
+              </button>
             </div>
           </div>
         </div>

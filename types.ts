@@ -51,6 +51,15 @@ export interface OrderItem {
   price: number;
 }
 
+export interface ReservationSettings {
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  maxGuests: number;
+  isEnabled: boolean;
+  advanceBookingDays: number; // عدد الأيام المسموح بالحجز قبلها
+}
+
 export interface Reservation {
   id: number;
   restaurantId: number;
@@ -82,5 +91,10 @@ export interface Restaurant {
   status: 'active' | 'suspended' | 'expired';
   address: string;
   phone: string;
+  currency: string;
+  themeColor: string;
+  fontFamily: string;
   socialLinks: { platform: string; url: string }[];
+  email?: string;
+  reservationSettings?: ReservationSettings;
 }

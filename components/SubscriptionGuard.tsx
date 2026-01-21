@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Lock } from 'lucide-react';
-import { PLANS, MOCK_RESTAURANT } from '../constants';
+import { Lock, Sparkles } from 'lucide-react';
+import { PLANS } from '../constants';
+import { db } from '../services/db';
 
 interface SubscriptionGuardProps {
   feature: 'orders' | 'reservations' | 'advanced_stats' | 'custom_design';
@@ -9,32 +10,44 @@ interface SubscriptionGuardProps {
 }
 
 const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ feature, children }) => {
-  const currentPlan = PLANS.find(p => p.id === MOCK_RESTAURANT.planId);
+  const restaurant = db.getCurrentRestaurant();
+  const currentPlan = PLANS.find(p => p.id === restaurant?.planId);
   
   const hasAccess = () => {
+    // بناءً على طلب المستخدم: فتح الطلبات والحجوزات للجميع
+    if (feature === 'orders' || feature === 'reservations') return true;
+    
     if (!currentPlan) return false;
-    if (currentPlan.id === 3) return true; // Enterprise has all
+    if (currentPlan.id === 3) return true; // Enterprise has everything
+    
+    // Professional (ID: 2) has Design, Analytics
     if (currentPlan.id === 2) {
-        return ['custom_design', 'qr'].includes(feature);
+        return ['custom_design', 'advanced_stats'].includes(feature);
     }
+    
     return false;
   };
 
   if (!hasAccess()) {
     return (
-      <div className="relative group">
-        <div className="filter blur-[2px] opacity-40 pointer-events-none">
+      <div className="relative group overflow-hidden rounded-[40px]">
+        <div className="filter blur-[8px] opacity-20 pointer-events-none select-none">
           {children}
         </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[1px] rounded-2xl border-2 border-dashed border-gray-200 p-6 text-center">
-          <div className="bg-amber-100 text-amber-600 p-3 rounded-full mb-3">
-            <Lock size={24} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-[2px] p-10 text-center z-10">
+          <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-white p-5 rounded-3xl mb-6 shadow-2xl shadow-amber-200 animate-bounce">
+            <Lock size={32} />
           </div>
-          <h3 className="font-bold text-gray-800 text-sm mb-1">ميزة مقفولة</h3>
-          <p className="text-[10px] text-gray-500 mb-4">هذه الميزة متاحة في الباقات المتقدمة فقط</p>
-          <button className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-lg hover:bg-blue-700 transition-all">
-            ترقية الباقة الآن
-          </button>
+          <h3 className="font-black text-2xl text-gray-800 mb-2 tracking-tighter">ميزة حصرية للمشتركين</h3>
+          <p className="text-gray-500 font-bold mb-8 max-w-[250px] leading-relaxed">هذه الميزة متاحة فقط في باقة "الاحترافية" و "الشركات". قم بالترقية الآن واستمتع بمزايا غير محدودة.</p>
+          
+          <div className="flex flex-col gap-3 w-full max-w-[200px]">
+             <button className="bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+               <Sparkles size={18} />
+               ترقية الباقة الآن
+             </button>
+             <button className="text-gray-400 font-black text-xs uppercase tracking-widest hover:text-gray-600 transition-colors">عرض كافة الميزات</button>
+          </div>
         </div>
       </div>
     );
