@@ -15,9 +15,10 @@ import {
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', name: 'لوحة التحكم', icon: <LayoutDashboard size={20} /> },
     { id: 'dishes', name: 'إدارة الأطباق', icon: <UtensilsCrossed size={20} /> },
@@ -30,35 +31,46 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <div className="w-64 bg-white h-screen border-l border-gray-200 flex flex-col fixed top-0 right-0">
-      <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+    <div className="w-64 bg-white h-screen border-l border-gray-200 flex flex-col fixed top-0 right-0 z-40">
+      <div className="p-8 border-b border-gray-50 flex items-center gap-4">
+        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-100">
           S
         </div>
-        <h1 className="text-xl font-bold text-gray-800">SOP POS</h1>
+        <div>
+          <h1 className="text-xl font-black text-gray-800 tracking-tighter">SOP POS</h1>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Enterprise</p>
+        </div>
       </div>
       
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav className="flex-1 overflow-y-auto py-8">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-6 py-3 transition-colors ${
+            className={`w-full flex items-center gap-4 px-8 py-4 transition-all duration-300 relative group ${
               activeTab === item.id 
-                ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600' 
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                ? 'text-blue-600 font-black' 
+                : 'text-gray-400 hover:text-gray-600 font-bold'
             }`}
           >
-            {item.icon}
-            <span className="font-medium">{item.name}</span>
+            {activeTab === item.id && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-1.5 bg-blue-600 rounded-l-full shadow-[0_0_15px_rgba(37,99,235,0.5)]"></div>
+            )}
+            <span className={`transition-transform duration-300 ${activeTab === item.id ? 'scale-110' : 'group-hover:translate-x-[-4px]'}`}>
+              {item.icon}
+            </span>
+            <span className="text-sm">{item.name}</span>
           </button>
         ))}
       </nav>
       
-      <div className="p-4 border-t border-gray-100">
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+      <div className="p-6 border-t border-gray-50">
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-red-50 text-red-500 hover:bg-red-100 rounded-[20px] transition-all font-black text-sm shadow-sm"
+        >
           <LogOut size={20} />
-          <span className="font-medium">تسجيل الخروج</span>
+          <span>تسجيل الخروج</span>
         </button>
       </div>
     </div>

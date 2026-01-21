@@ -19,7 +19,8 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   useEffect(() => {
-    setDishes(db.getDishes());
+    // Fix: Added restaurantId argument (1) to db.getDishes
+    setDishes(db.getDishes(1));
   }, []);
 
   const addToCart = (dish: Dish) => {

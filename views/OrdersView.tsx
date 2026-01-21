@@ -9,12 +9,18 @@ const OrdersView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    setOrders(db.getOrders());
+    const restaurant = db.getCurrentRestaurant();
+    if (restaurant) {
+      setOrders(db.getOrders(restaurant.id));
+    }
   }, []);
 
   const updateStatus = (id: number, status: Order['status']) => {
+    const restaurant = db.getCurrentRestaurant();
     db.updateOrderStatus(id, status);
-    setOrders(db.getOrders());
+    if (restaurant) {
+      setOrders(db.getOrders(restaurant.id));
+    }
   };
 
   const statusMap: any = {

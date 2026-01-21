@@ -9,7 +9,10 @@ const ReservationsView: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
   useEffect(() => {
-    setReservations(db.getReservations());
+    const restaurant = db.getCurrentRestaurant();
+    if (restaurant) {
+      setReservations(db.getReservations(restaurant.id));
+    }
   }, []);
 
   return (

@@ -11,9 +11,10 @@ const RestaurantDashboardView: React.FC = () => {
   const [stats, setStats] = useState({ sales: 0, count: 0, reservations: 0, rating: 4.8 });
 
   useEffect(() => {
-    const allOrders = db.getOrders();
-    const allDishes = db.getDishes();
-    const allRes = db.getReservations();
+    // Fix: Added restaurantId argument (1) to db calls
+    const allOrders = db.getOrders(1);
+    const allDishes = db.getDishes(1);
+    const allRes = db.getReservations(1);
     
     setOrders(allOrders.slice(0, 5));
     setDishes(allDishes);

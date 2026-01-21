@@ -20,13 +20,18 @@ const DishesView: React.FC = () => {
   });
 
   useEffect(() => {
-    setDishes(db.getDishes());
+    const restaurant = db.getCurrentRestaurant();
+    if (restaurant) {
+      setDishes(db.getDishes(restaurant.id));
+    }
   }, []);
 
   const handleSave = () => {
-    if (!newDish.name || !newDish.price) return;
+    const restaurant = db.getCurrentRestaurant();
+    if (!newDish.name || !newDish.price || !restaurant) return;
+    
     db.addDish({
-      restaurantId: 1,
+      restaurantId: restaurant.id,
       name: newDish.name || '',
       nameEn: newDish.name || '',
       description: newDish.description || '',
@@ -36,9 +41,10 @@ const DishesView: React.FC = () => {
       isAvailable: true,
       preparationTime: newDish.preparationTime || 20
     });
-    setDishes(db.getDishes());
+
+    setDishes(db.getDishes(restaurant.id));
     setIsModalOpen(false);
-    setNewDish({ name: '', description: '', price: 0, categoryId: 1 });
+    setNewDish({ name: '', description: '', price: 0, categoryId: MOCK_CATEGORIES[0].id });
   };
 
   const generateAIDescription = async () => {

@@ -1,127 +1,161 @@
 
-import React from 'react';
-import { Store, CreditCard, Bell, Shield, MapPin, Palette, Globe, Smartphone, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { db } from '../services/db';
+import { Restaurant } from '../types';
+import { Store, CreditCard, Smartphone, Palette, Globe, Shield, HelpCircle, CheckCircle2 } from 'lucide-react';
 
 const SettingsView: React.FC = () => {
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    setRestaurant(db.getCurrentRestaurant());
+  }, []);
+
+  const handleSave = () => {
+    if (restaurant) {
+      db.updateRestaurant(restaurant.id, restaurant);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  if (!restaurant) return null;
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto pb-32">
+      {showToast && (
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+           <CheckCircle2 size={24} />
+           <span className="font-black">تم حفظ كافة التغييرات بنجاح!</span>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-3xl font-black text-gray-800">إعدادات النظام</h1>
-          <p className="text-gray-500">تحكم في هوية مطعمك، مظهر المنيو، واشتراكك</p>
+          <h1 className="text-4xl font-black text-gray-800 tracking-tight">إعدادات النظام</h1>
+          <p className="text-gray-500 font-medium">تحكم في هوية مطعمك، مظهر المنيو، واشتراكك</p>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Restaurant Profile */}
-          <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm transition-all hover:shadow-md">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Store size={22}/></div>
-              <h2 className="text-xl font-bold">هوية المطعم</h2>
+          <section className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-sm"><Store size={24}/></div>
+              <h2 className="text-2xl font-black">هوية المطعم</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2 flex justify-center mb-4">
-                 <div className="relative group">
-                    <img src="https://picsum.photos/seed/logo/200/200" className="w-24 h-24 rounded-full border-4 border-gray-100 object-cover" alt="" />
-                    <button className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">تغيير</button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="md:col-span-2 flex justify-center mb-6">
+                 <div className="relative group cursor-pointer">
+                    <img src={restaurant.logo} className="w-32 h-32 rounded-full border-8 border-gray-50 object-cover shadow-lg transition-transform group-hover:scale-105" alt="" />
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black uppercase">تغيير الشعار</div>
                  </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">اسم المطعم (عربي)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" defaultValue="مطعم الشرق الأصيل" />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">اسم المطعم</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                  value={restaurant.name} 
+                  onChange={e => setRestaurant({...restaurant, name: e.target.value})}
+                />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">اسم المطعم (إنجليزي)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" defaultValue="Al Sharq Authentic" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">رابط المنيو المخصص (Slug)</label>
-                <div className="flex items-center bg-gray-50 rounded-2xl px-5 py-3 group focus-within:ring-2 focus-within:ring-blue-500">
-                  <span className="text-gray-400 text-sm">sop-pos.com/</span>
-                  <input type="text" className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-blue-600" defaultValue="al-sharq" />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">رابط المنيو (Slug)</label>
+                <div className="flex items-center bg-gray-50 rounded-2xl px-6 py-4 group focus-within:ring-2 focus-within:ring-blue-500">
+                  <span className="text-gray-400 text-sm font-bold ml-1">sop.com/</span>
+                  <input 
+                    type="text" 
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-blue-600" 
+                    value={restaurant.slug}
+                    onChange={e => setRestaurant({...restaurant, slug: e.target.value})}
+                  />
                 </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">عنوان المطعم</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                  value={restaurant.address}
+                  onChange={e => setRestaurant({...restaurant, address: e.target.value})}
+                />
               </div>
             </div>
           </section>
 
-          {/* Social Links & Features */}
-          <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm transition-all hover:shadow-md">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl"><Smartphone size={22}/></div>
-              <h2 className="text-xl font-bold">روابط التواصل والميزات</h2>
+          <section className="bg-white rounded-[40px] p-10 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl shadow-sm"><Smartphone size={24}/></div>
+              <h2 className="text-2xl font-black">الميزات المتقدمة</h2>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                  <span className="font-bold text-sm">نظام الطلبات المباشرة</span>
-                  <div className="w-12 h-6 bg-blue-600 rounded-full relative p-1 cursor-pointer">
-                    <div className="w-4 h-4 bg-white rounded-full mr-auto"></div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[32px] hover:bg-gray-100 transition-colors cursor-pointer">
+                <div>
+                  <p className="font-black text-gray-800 text-sm">نظام الطلبات المباشرة</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Direct Orders</p>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                  <span className="font-bold text-sm">نظام حجز الطاولات</span>
-                  <div className="w-12 h-6 bg-blue-600 rounded-full relative p-1 cursor-pointer">
-                    <div className="w-4 h-4 bg-white rounded-full mr-auto"></div>
-                  </div>
-                </div>
+                <div className="w-14 h-8 bg-blue-600 rounded-full flex items-center px-1 shadow-inner"><div className="w-6 h-6 bg-white rounded-full mr-auto shadow-md"></div></div>
               </div>
-              <div className="space-y-3">
-                 <input type="text" placeholder="رابط إنستغرام" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                 <input type="text" placeholder="رابط تيك توك" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[32px] hover:bg-gray-100 transition-colors cursor-pointer">
+                <div>
+                  <p className="font-black text-gray-800 text-sm">نظام الحجز الآلي</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Auto Reservations</p>
+                </div>
+                <div className="w-14 h-8 bg-blue-600 rounded-full flex items-center px-1 shadow-inner"><div className="w-6 h-6 bg-white rounded-full mr-auto shadow-md"></div></div>
               </div>
             </div>
           </section>
         </div>
 
         <div className="space-y-8">
-           {/* Active Plan Card */}
-           <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
+           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[40px] p-10 text-white shadow-2xl relative overflow-hidden group">
               <div className="relative z-10">
-                <div className="text-xs font-bold uppercase tracking-widest opacity-60 mb-2">باقتك الحالية</div>
-                <div className="text-3xl font-black mb-1">الشركات</div>
-                <div className="text-indigo-200 text-sm mb-6">Enterprise Plan</div>
-                <ul className="space-y-2 mb-8 text-sm">
-                  <li className="flex items-center gap-2 opacity-90"><CreditCard size={14}/> أطباق غير محدودة</li>
-                  <li className="flex items-center gap-2 opacity-90"><CreditCard size={14}/> إحصائيات متقدمة</li>
-                  <li className="flex items-center gap-2 opacity-90"><CreditCard size={14}/> دعم فني 24/7</li>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-3">اشتراكك الحالي</div>
+                <div className="text-3xl font-black mb-1">الاحترافية</div>
+                <div className="text-blue-100 text-xs font-bold mb-8 uppercase">Professional Plan</div>
+                <ul className="space-y-3 mb-10 text-sm font-bold">
+                  <li className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-blue-300 rounded-full"></div> أطباق غير محدودة</li>
+                  <li className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-blue-300 rounded-full"></div> QR Code مخصص</li>
+                  <li className="flex items-center gap-3"><div className="w-1.5 h-1.5 bg-blue-300 rounded-full"></div> دعم فني مميز</li>
                 </ul>
-                <button className="w-full bg-white text-indigo-600 py-3 rounded-2xl font-black hover:bg-indigo-50 transition-all shadow-lg active:scale-95">ترقية الباقة</button>
+                <button className="w-full bg-white text-blue-600 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-50 transition-all hover:scale-105">ترقية الباقة الآن</button>
               </div>
-              {/* Background Glow */}
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+              <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-1000"></div>
            </div>
 
-           {/* Quick Actions / Shortcuts */}
-           <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-3">
-              <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-all group">
-                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-50 text-amber-500 rounded-lg"><Palette size={18}/></div>
-                    <span className="text-sm font-bold text-gray-700">تخصيص ألوان المنيو</span>
+           <div className="bg-white p-8 rounded-[40px] border border-gray-100 space-y-4">
+              <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all group">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-50 text-amber-500 rounded-xl"><Palette size={20}/></div>
+                    <span className="text-sm font-black text-gray-700">تخصيص ألوان المنيو</span>
                  </div>
-                 <Globe size={16} className="text-gray-300 group-hover:text-blue-500" />
+                 <Globe size={16} className="text-gray-300" />
               </button>
-              <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-all group">
-                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-50 text-red-500 rounded-lg"><Shield size={18}/></div>
-                    <span className="text-sm font-bold text-gray-700">تغيير كلمة المرور</span>
+              <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all group">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-50 text-red-500 rounded-xl"><Shield size={20}/></div>
+                    <span className="text-sm font-black text-gray-700">تغيير كلمة المرور</span>
                  </div>
-                 <Globe size={16} className="text-gray-300 group-hover:text-blue-500" />
+                 <Globe size={16} className="text-gray-300" />
               </button>
-              <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-all group">
-                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 text-green-500 rounded-lg"><HelpCircle size={18}/></div>
-                    <span className="text-sm font-bold text-gray-700">مركز المساعدة</span>
+              <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-2xl transition-all group">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-green-50 text-green-500 rounded-xl"><HelpCircle size={20}/></div>
+                    <span className="text-sm font-black text-gray-700">مركز المساعدة</span>
                  </div>
-                 <Globe size={16} className="text-gray-300 group-hover:text-blue-500" />
+                 <Globe size={16} className="text-gray-300" />
               </button>
            </div>
         </div>
       </div>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 bg-white/80 backdrop-blur-md p-3 rounded-full shadow-2xl border border-white">
-          <button className="px-10 py-3 bg-blue-600 text-white font-black rounded-full hover:bg-blue-700 shadow-xl transition-all active:scale-95">حفظ كافة التغييرات</button>
-          <button className="px-6 py-3 bg-gray-100 text-gray-500 font-bold rounded-full hover:bg-gray-200 transition-all">إلغاء</button>
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-lg px-6 z-[90]">
+        <div className="bg-white/80 backdrop-blur-xl p-4 rounded-[32px] shadow-2xl border border-white flex gap-4">
+            <button onClick={handleSave} className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95">حفظ كافة الإعدادات</button>
+            <button className="px-8 py-4 bg-gray-100 text-gray-400 font-black rounded-2xl hover:bg-gray-200 transition-all">إلغاء</button>
+        </div>
       </div>
     </div>
   );
