@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Star, Clock, Info, QrCode, Download, Share2, X, Plus, Minus, Trash2, CalendarCheck, Users, Phone, User, SearchCheck } from 'lucide-react';
+import { Search, ShoppingCart, Star, Clock, QrCode, X, Plus, Minus, Trash2, CalendarCheck, Users, Phone, User, SearchCheck, Utensils, MapPin, CheckCircle2, ChevronLeft, Calendar, Info, ArrowRight } from 'lucide-react';
 import { MOCK_CATEGORIES, MOCK_RESTAURANT } from '../constants';
 import { db } from '../services/db';
-import { Dish, OrderItem, Restaurant, Reservation } from '../types';
+import { Dish, OrderItem, Restaurant } from '../types';
 import ReservationInquiryView from './ReservationInquiryView';
 
 interface CustomerMenuViewProps {
@@ -18,18 +18,18 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isReservationOpen, setIsReservationOpen] = useState(false);
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
+  const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [restaurant, setRestaurant] = useState<Restaurant>(MOCK_RESTAURANT);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [reservationSuccess, setReservationSuccess] = useState(false);
 
-  // Reservation form state
-  const [reservationForm, setReservationForm] = useState({
-    name: '',
-    phone: '',
+  const [reservationData, setReservationData] = useState({
+    name: 'أحمد محمد علي',
+    phone: '0501234567',
+    guests: '4 ضيوف',
     date: new Date().toISOString().split('T')[0],
-    time: '19:00',
-    guests: 2
+    time: '20:30'
   });
 
   useEffect(() => {
@@ -40,6 +40,7 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     } else {
         setDishes(db.getDishes(1));
     }
+    window.scrollTo(0, 0);
   }, []);
 
   if (isInquiryOpen) {
@@ -56,10 +57,6 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     });
   };
 
-  const removeFromCart = (dishId: number) => {
-    setCart(prev => prev.filter(i => i.dishId !== dishId));
-  };
-
   const updateQty = (dishId: number, delta: number) => {
     setCart(prev => prev.map(i => {
       if (i.dishId === dishId) {
@@ -70,26 +67,8 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     }));
   };
 
-  const handleReservationSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    db.createReservation({
-      restaurantId: restaurant.id,
-      customerName: reservationForm.name,
-      customerPhone: reservationForm.phone,
-      date: reservationForm.date,
-      time: reservationForm.time,
-      guests: reservationForm.guests
-    });
-    setIsReservationOpen(false);
-    setReservationSuccess(true);
-    setTimeout(() => setReservationSuccess(false), 5000);
-    setReservationForm({
-      name: '',
-      phone: '',
-      date: new Date().toISOString().split('T')[0],
-      time: '19:00',
-      guests: 2
-    });
+  const removeFromCart = (dishId: number) => {
+    setCart(prev => prev.filter(i => i.dishId !== dishId));
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -98,7 +77,7 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     if (cart.length === 0) return;
     db.createOrder({
       restaurantId: restaurant.id,
-      customerName: 'عميل من المنيو الإلكتروني',
+      customerName: 'عميل المنيو',
       customerPhone: '05xxxxxxxx',
       total: cartTotal,
       status: 'pending',
@@ -112,155 +91,254 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
 
   const filteredDishes = dishes.filter(dish => 
     (activeCategory === 0 || dish.categoryId === activeCategory) &&
-    dish.name.includes(searchTerm)
+    dish.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + (restaurant.reservationSettings?.advanceBookingDays || 7));
-  const maxDateString = maxDate.toISOString().split('T')[0];
-  const minDateString = new Date().toISOString().split('T')[0];
+  const handleReservationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsReservationOpen(false);
+    setReservationSuccess(true);
+    setTimeout(() => setReservationSuccess(false), 4000);
+  };
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-24 relative" style={{ fontFamily: restaurant.fontFamily || 'Cairo' }}>
+    <div className="bg-slate-50 min-h-screen pb-safe-area-inset-bottom overflow-x-hidden" style={{ fontFamily: restaurant.fontFamily || 'Cairo' }}>
+      
       {isPreview && (
-        <div className="text-white p-3 text-center text-xs font-bold sticky top-0 z-50 flex justify-between items-center px-6 shadow-md" style={{ backgroundColor: restaurant.themeColor }}>
-          <span>معاينة حيـة لمنيـو مطعمك</span>
-          <button onClick={() => setShowQR(true)} className="bg-white/20 hover:bg-white/30 p-1.5 rounded-lg flex items-center gap-1 transition-all"><QrCode size={14} /> الرمز</button>
+        <div className="fixed top-0 inset-x-0 z-[100] bg-black/90 backdrop-blur-md text-white py-2 px-4 flex justify-between items-center text-[10px] font-black tracking-widest border-b border-white/10">
+           <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> وضع المعاينة الفورية</span>
+           <button onClick={() => setShowQR(true)} className="bg-white/10 px-3 py-1 rounded-lg">QR Code</button>
         </div>
       )}
 
       {(orderSuccess || reservationSuccess) && (
-        <div className="fixed top-20 inset-x-4 bg-green-600 text-white p-4 rounded-2xl z-[120] flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-500">
+        <div className="fixed top-24 inset-x-6 z-[150] bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
            <div className="flex items-center gap-3">
-             <div className="bg-white/20 p-2 rounded-full"><ShoppingCart size={20}/></div>
-             <div>
-                <p className="font-bold text-sm">{orderSuccess ? 'تم إرسال طلبك بنجاح!' : 'تم إرسال طلب الحجز بنجاح!'}</p>
-                <p className="text-[10px] opacity-80">{orderSuccess ? 'سيقوم المطبخ بالبدء في تجهيزه فوراً.' : 'سنقوم بالتواصل معك لتأكيد الحجز.'}</p>
-             </div>
+             <CheckCircle2 size={24} className="text-green-500" />
+             <p className="text-xs font-black">{orderSuccess ? 'تم إرسال طلبك بنجاح!' : 'تم إرسال طلب الحجز بنجاح!'}</p>
            </div>
-           <button onClick={() => { setOrderSuccess(false); setReservationSuccess(false); }}><X size={18}/></button>
+           <button onClick={() => {setOrderSuccess(false); setReservationSuccess(false)}}><X size={20}/></button>
         </div>
       )}
 
-      {/* Hero */}
-      <div className="relative h-48">
-        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Banner" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-        <div className="absolute bottom-4 right-4 flex items-center gap-3 w-full px-4">
-          <img src={restaurant.logo} className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg object-cover flex-shrink-0" alt="Logo" />
-          <div className="flex-1">
-            <h1 className="text-white text-xl font-black">{restaurant.name}</h1>
-            <div className="flex items-center gap-2 text-white/90 text-sm">
-              <Star size={14} className="fill-amber-400 text-amber-400" />
-              <span>4.8 (1.2k+ تقييم)</span>
+      {/* Hero Header Section */}
+      <div className="relative h-64 md:h-96 lg:h-[500px] w-full overflow-hidden">
+        <img src={restaurant.coverImage} className="w-full h-full object-cover" alt="Cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-black/20 to-transparent"></div>
+        
+        <div className="absolute bottom-0 inset-x-0 p-6 md:p-12">
+          <div className="flex items-center gap-4 md:gap-8 max-w-7xl mx-auto">
+            <div className="relative">
+              <img src={restaurant.logo} className="w-20 h-20 md:w-40 md:h-40 rounded-[1.8rem] md:rounded-[2.5rem] border-4 border-white shadow-2xl bg-white object-cover" alt="Logo" />
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {restaurant.reservationSettings?.isEnabled && (
-              <button 
-                onClick={() => setIsReservationOpen(true)}
-                className="bg-white text-gray-800 px-4 py-2 rounded-xl text-[10px] font-black shadow-lg flex items-center gap-2 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
-              >
-                 <CalendarCheck size={14} style={{ color: restaurant.themeColor }} />
-                 حجز طاولة
-              </button>
-            )}
-            <button 
-              onClick={() => setIsInquiryOpen(true)}
-              className="bg-slate-900/40 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[10px] font-black border border-white/20 flex items-center gap-2 hover:bg-slate-900/60 transition-all whitespace-nowrap"
-            >
-               <SearchCheck size={14} />
-               استعلام حجز
-            </button>
+            <div className="flex-1 pt-4">
+              <h1 className="text-white text-2xl md:text-6xl font-black mb-1 md:mb-4 leading-tight drop-shadow-md">{restaurant.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-white/90 text-[10px] md:text-sm font-bold">
+                <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <span>4.9 تقييم</span>
+                </div>
+                <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                  <MapPin size={14} />
+                  <span className="truncate max-w-[120px]">{restaurant.address.split('-')[0]}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-around py-4 border-b border-gray-100 bg-gray-50/30">
-        <div className="flex flex-col items-center"><Clock size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">التحضير</span><span className="text-xs font-black">20-30 د</span></div>
-        <div className="flex flex-col items-center"><Info size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">الحالة</span><span className="text-xs font-black text-green-600">مفتوح</span></div>
-        <div className="flex flex-col items-center"><ShoppingCart size={16} className="mb-1" style={{ color: restaurant.themeColor }}/><span className="text-[10px] text-gray-500 font-bold uppercase">الأدنى</span><span className="text-xs font-black">40 {restaurant.currency}</span></div>
-      </div>
-
-      <div className="p-4">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input type="text" placeholder="ابحث عن طبق..." className="w-full bg-gray-100 border-none rounded-2xl py-3 pr-10 pl-4 text-sm focus:ring-2 outline-none" style={{ ['--tw-ring-color' as any]: restaurant.themeColor }} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto px-4 py-2 no-scrollbar whitespace-nowrap">
-        <button onClick={() => setActiveCategory(0)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === 0 ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`} style={activeCategory === 0 ? { backgroundColor: restaurant.themeColor } : {}}>الكل</button>
-        {MOCK_CATEGORIES.map(cat => (
-          <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-5 py-2 rounded-full text-xs font-black transition-all ${activeCategory === cat.id ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`} style={activeCategory === cat.id ? { backgroundColor: restaurant.themeColor } : {}}>{cat.name}</button>
-        ))}
-      </div>
-
-      <div className="px-4 py-6 space-y-6">
-        <h2 className="text-lg font-black text-gray-800 border-r-4 pr-3" style={{ borderRightColor: restaurant.themeColor }}>{activeCategory === 0 ? 'قائمة الطعام' : MOCK_CATEGORIES.find(c => c.id === activeCategory)?.name}</h2>
-        {filteredDishes.map(dish => (
-          <div key={dish.id} className="flex gap-4 group">
-            <div className="relative overflow-hidden rounded-2xl shadow-sm w-24 h-24 flex-shrink-0 bg-gray-100">
-                <img src={dish.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={dish.name} />
-            </div>
-            <div className="flex-1 flex flex-col justify-between py-1">
-              <div>
-                <h3 className="font-bold text-gray-800 text-sm">{dish.name}</h3>
-                <p className="text-[11px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">{dish.description}</p>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-black text-sm" style={{ color: restaurant.themeColor }}>{dish.price} {restaurant.currency}</span>
-                {!isPreview && (
-                   <button onClick={() => addToCart(dish)} className="text-white w-8 h-8 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-90 transition-all shadow-md" style={{ backgroundColor: restaurant.themeColor }}>+</button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {!isPreview && cart.length > 0 && (
-         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-[90]">
-           <button onClick={() => setIsCartOpen(true)} className="w-full text-white py-4 rounded-2xl font-black shadow-2xl flex justify-between px-6 items-center hover:opacity-90 transition-all" style={{ backgroundColor: restaurant.themeColor }}>
-             <div className="flex items-center gap-3">
-               <span className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center text-xs">{cart.reduce((a, b) => a + b.quantity, 0)}</span>
-               <span className="text-sm">سلة المشتريات</span>
-             </div>
-             <span className="text-sm">{cartTotal} {restaurant.currency}</span>
+      {/* Action Buttons */}
+      <div className="px-6 mt-8 max-w-7xl mx-auto">
+        <div className="flex gap-3 md:max-w-md">
+           <button 
+             onClick={() => setIsReservationOpen(true)}
+             className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-xs md:text-sm font-black shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+           >
+             <CalendarCheck size={18} style={{ color: restaurant.themeColor }} />
+             حجز طاولة
            </button>
-         </div>
+           <button 
+             onClick={() => setIsInquiryOpen(true)}
+             className="flex-1 bg-white border border-slate-200 text-slate-600 py-4 rounded-2xl text-xs md:text-sm font-black shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+           >
+             <SearchCheck size={18} />
+             استعلام عن حجز
+           </button>
+        </div>
+      </div>
+
+      {/* Categories slider */}
+      <div className="sticky top-0 z-40 bg-slate-50/80 backdrop-blur-xl border-b border-slate-200/50 mt-10">
+        <div className="max-w-7xl mx-auto flex gap-2 overflow-x-auto py-4 px-6 no-scrollbar">
+           <button 
+             onClick={() => setActiveCategory(0)}
+             className={`px-6 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${activeCategory === 0 ? 'text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-100'}`}
+             style={activeCategory === 0 ? { backgroundColor: restaurant.themeColor } : {}}
+           >الكل</button>
+           {MOCK_CATEGORIES.map(cat => (
+             <button 
+               key={cat.id}
+               onClick={() => setActiveCategory(cat.id)}
+               className={`px-6 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${activeCategory === cat.id ? 'text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-100'}`}
+               style={activeCategory === cat.id ? { backgroundColor: restaurant.themeColor } : {}}
+             >{cat.name}</button>
+           ))}
+        </div>
+      </div>
+
+      {/* Dishes Grid */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="relative mb-8 group max-w-2xl mx-auto">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+          <input 
+            type="text" 
+            placeholder="ابحث عن صنفك المفضل..." 
+            className="w-full bg-white border border-slate-100 rounded-2xl py-4 pr-12 pl-6 text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500/10 outline-none transition-all text-slate-700"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+          {filteredDishes.map(dish => (
+            <div 
+              key={dish.id} 
+              onClick={() => setSelectedDish(dish)}
+              className="bg-white rounded-[2rem] p-3 md:p-5 border border-slate-100 shadow-sm hover:shadow-xl transition-all group flex md:flex-col items-center gap-4 cursor-pointer active:scale-[0.98]"
+            >
+              <div className="w-24 h-24 md:w-full md:aspect-square rounded-[1.5rem] overflow-hidden flex-shrink-0 relative">
+                 <img src={dish.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={dish.name} />
+                 <div className="absolute top-2 left-2 bg-white/95 backdrop-blur text-[10px] font-black px-2 py-1 rounded-lg shadow-sm" style={{ color: restaurant.themeColor }}>
+                   {dish.price} {restaurant.currency}
+                 </div>
+              </div>
+              <div className="flex-1 md:w-full">
+                <h3 className="text-sm md:text-lg font-black text-slate-800 mb-1 leading-tight">{dish.name}</h3>
+                <p className="text-[10px] md:text-xs text-slate-400 font-bold mb-3 line-clamp-2 md:h-10 leading-relaxed">{dish.description}</p>
+                <div className="flex justify-between items-center mt-auto">
+                   <div className="flex items-center gap-1 text-[9px] text-slate-300 font-black">
+                      <Clock size={12} /> {dish.preparationTime} دقيقة
+                   </div>
+                   {!isPreview && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); addToCart(dish); }} 
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"
+                        style={{ backgroundColor: restaurant.themeColor }}
+                      >
+                        <Plus size={20} />
+                      </button>
+                   )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Floating Cart Button */}
+      {!isPreview && cart.length > 0 && (
+        <div className="fixed bottom-6 inset-x-6 z-50 flex flex-col gap-3 md:max-w-md md:left-1/2 md:-translate-x-1/2">
+           <button 
+             onClick={() => setIsCartOpen(true)}
+             className="w-full text-white py-4 px-6 rounded-[1.8rem] font-black shadow-2xl flex justify-between items-center animate-in slide-in-from-bottom-8 duration-500"
+             style={{ backgroundColor: restaurant.themeColor }}
+           >
+              <div className="flex items-center gap-3">
+                 <div className="bg-white/20 w-8 h-8 rounded-lg flex items-center justify-center text-xs">{cart.reduce((a, b) => a + b.quantity, 0)}</div>
+                 <span className="text-sm">سلة الطلبات</span>
+              </div>
+              <span className="text-lg">{cartTotal} {restaurant.currency}</span>
+           </button>
+        </div>
+      )}
+
+      {/* Dish Detail Modal with Click Outside to Close (X Button Removed) */}
+      {selectedDish && (
+        <div 
+          onClick={() => setSelectedDish(null)}
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[250] flex items-end md:items-center justify-center p-0 md:p-6"
+        >
+           <div 
+             onClick={(e) => e.stopPropagation()}
+             className="bg-white w-full md:max-w-xl rounded-t-[3rem] md:rounded-[3rem] overflow-hidden animate-in slide-in-from-bottom duration-300 relative"
+           >
+              {/* Cover Image */}
+              <div className="relative h-72 md:h-80 w-full">
+                 <img src={selectedDish.image} className="w-full h-full object-cover" alt={selectedDish.name} />
+                 {/* X Button has been removed for a cleaner look and reliance on click outside */}
+                 <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+              </div>
+
+              {/* Content */}
+              <div className="px-8 pb-10 -mt-8 relative z-10">
+                 <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-3xl font-black text-slate-900 leading-tight">{selectedDish.name}</h2>
+                    <div className="text-2xl font-black bg-slate-50 px-4 py-2 rounded-2xl" style={{ color: restaurant.themeColor }}>
+                       {selectedDish.price} <span className="text-[10px] uppercase">{restaurant.currency}</span>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl">
+                       <Clock size={14} className="text-slate-300" />
+                       {selectedDish.preparationTime} دقيقة
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl">
+                       <Info size={14} className="text-slate-300" />
+                       {MOCK_CATEGORIES.find(c => c.id === selectedDish.categoryId)?.name}
+                    </div>
+                 </div>
+
+                 <p className="text-slate-500 font-bold leading-relaxed mb-10 text-sm md:text-base">
+                    {selectedDish.description}
+                 </p>
+
+                 {!isPreview && (
+                   <button 
+                     onClick={() => { addToCart(selectedDish); setSelectedDish(null); }}
+                     className="w-full text-white py-5 rounded-2xl font-black text-lg shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3"
+                     style={{ backgroundColor: restaurant.themeColor }}
+                   >
+                     <ShoppingCart size={22} />
+                     إضافة للسلة
+                   </button>
+                 )}
+              </div>
+           </div>
+        </div>
       )}
 
       {/* Cart Modal */}
       {isCartOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-end justify-center">
-           <div className="bg-white rounded-t-[40px] w-full max-w-md p-6 animate-in slide-in-from-bottom duration-300">
-              <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-xl font-black text-gray-800">تفاصيل السلة</h3>
-                 <button onClick={() => setIsCartOpen(false)} className="bg-gray-100 p-2 rounded-full"><X size={20}/></button>
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[200] flex items-end justify-center">
+           <div className="bg-white w-full md:max-w-2xl rounded-t-[3rem] p-8 max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+              <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6"></div>
+              <div className="flex justify-between items-center mb-8">
+                 <h2 className="text-2xl font-black text-slate-900">سلتك الحالية</h2>
+                 <button onClick={() => setIsCartOpen(false)} className="bg-slate-50 p-2 rounded-xl text-slate-400"><X size={24}/></button>
               </div>
-              <div className="space-y-4 max-h-[40vh] overflow-y-auto mb-8 pr-1">
+              <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar mb-8">
                  {cart.map(item => (
-                    <div key={item.dishId} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div key={item.dishId} className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                        <div className="flex-1">
-                          <h4 className="font-bold text-gray-800 text-sm">{item.dishName}</h4>
-                          <p className="font-bold text-xs" style={{ color: restaurant.themeColor }}>{item.price} {restaurant.currency}</p>
+                          <h4 className="font-black text-slate-800 text-sm mb-1">{item.dishName}</h4>
+                          <p className="text-xs font-black" style={{ color: restaurant.themeColor }}>{item.price} {restaurant.currency}</p>
                        </div>
-                       <div className="flex items-center gap-3 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
-                          <button onClick={() => updateQty(item.dishId, -1)} className="w-6 h-6 flex items-center justify-center text-gray-400"><Minus size={14}/></button>
-                          <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.dishId, 1)} className="w-6 h-6 flex items-center justify-center" style={{ color: restaurant.themeColor }}><Plus size={14}/></button>
+                       <div className="flex items-center gap-3 bg-white p-1.5 rounded-xl">
+                          <button onClick={() => updateQty(item.dishId, -1)} className="p-1 text-slate-300"><Minus size={16}/></button>
+                          <span className="font-black text-sm w-4 text-center text-slate-700">{item.quantity}</span>
+                          <button onClick={() => updateQty(item.dishId, 1)} className="p-1" style={{ color: restaurant.themeColor }}><Plus size={16}/></button>
                        </div>
-                       <button onClick={() => removeFromCart(item.dishId)} className="mr-3 text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
                     </div>
                  ))}
               </div>
-              <div className="border-t border-gray-100 pt-6 space-y-4">
-                 <div className="flex justify-between text-lg">
-                    <span className="text-gray-500 font-bold">الإجمالي النهائي</span>
-                    <span className="font-black" style={{ color: restaurant.themeColor }}>{cartTotal} {restaurant.currency}</span>
+              <div className="pt-6 border-t border-slate-100 mb-6">
+                 <div className="flex justify-between items-center mb-6">
+                    <span className="text-slate-400 font-black">المجموع</span>
+                    <span className="text-2xl font-black text-slate-900">{cartTotal} {restaurant.currency}</span>
                  </div>
-                 <button onClick={placeOrder} className="w-full text-white py-4 rounded-2xl font-black shadow-xl hover:opacity-90 transition-all active:scale-95" style={{ backgroundColor: restaurant.themeColor }}>تأكيد وإرسال الطلب</button>
+                 <button onClick={placeOrder} className="w-full text-white py-5 rounded-2xl font-black text-lg shadow-xl" style={{ backgroundColor: restaurant.themeColor }}>تأكيد الطلب</button>
               </div>
            </div>
         </div>
@@ -268,104 +346,120 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
 
       {/* Reservation Modal */}
       {isReservationOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] flex items-end justify-center p-0">
-          <div className="bg-white rounded-t-[40px] w-full max-w-md p-8 animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black text-gray-800">حجز طاولة جديدة</h3>
-              <button onClick={() => setIsReservationOpen(false)} className="bg-gray-100 p-3 rounded-full"><X size={20}/></button>
-            </div>
-            <form onSubmit={handleReservationSubmit} className="space-y-6">
-               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                   <User size={12}/> الاسم الكريم
-                 </label>
-                 <input 
-                  type="text" 
-                  required
-                  placeholder="أدخل اسمك"
-                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none" 
-                  style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
-                  value={reservationForm.name}
-                  onChange={e => setReservationForm({...reservationForm, name: e.target.value})}
-                 />
-               </div>
-               <div className="space-y-2">
-                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                   <Phone size={12}/> رقم الجوال
-                 </label>
-                 <input 
-                  type="tel" 
-                  required
-                  placeholder="05xxxxxxxx"
-                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none" 
-                  style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
-                  value={reservationForm.phone}
-                  onChange={e => setReservationForm({...reservationForm, phone: e.target.value})}
-                 />
-               </div>
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">التاريخ</label>
-                    <input 
-                      type="date" 
-                      required
-                      min={minDateString}
-                      max={maxDateString}
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-xs focus:ring-2 outline-none" 
-                      style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
-                      value={reservationForm.date}
-                      onChange={e => setReservationForm({...reservationForm, date: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">الوقت</label>
-                    <input 
-                      type="time" 
-                      required
-                      className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-xs focus:ring-2 outline-none" 
-                      style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
-                      value={reservationForm.time}
-                      onChange={e => setReservationForm({...reservationForm, time: e.target.value})}
-                    />
-                  </div>
-               </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <Users size={12}/> عدد الضيوف
-                  </label>
-                  <select 
-                    className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 outline-none cursor-pointer"
-                    style={{ ['--tw-ring-color' as any]: restaurant.themeColor }}
-                    value={reservationForm.guests}
-                    onChange={e => setReservationForm({...reservationForm, guests: Number(e.target.value)})}
-                  >
-                    {[...Array(restaurant.reservationSettings?.maxGuests || 10)].map((_, i) => (
-                      <option key={i+1} value={i+1}>{i+1} ضيوف</option>
-                    ))}
-                  </select>
-               </div>
-               <button type="submit" className="w-full text-white py-5 rounded-3xl font-black text-lg shadow-xl hover:opacity-90 transition-all active:scale-95 mt-4" style={{ backgroundColor: restaurant.themeColor }}>
-                 تأكيد حجز الطاولة
-               </button>
-            </form>
-          </div>
-        </div>
-      )}
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[200] flex items-end justify-center">
+           <div className="bg-white w-full md:max-w-xl rounded-t-[3rem] md:rounded-[3rem] p-8 max-h-[95vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+              <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-6 md:hidden"></div>
+              
+              <div className="flex justify-between items-center mb-8">
+                 <div>
+                   <h2 className="text-2xl font-black text-slate-900">احجز طاولتك الآن</h2>
+                   <p className="text-xs text-slate-400 font-bold">يرجى تأكيد البيانات التالية لإتمام الحجز</p>
+                 </div>
+                 <button onClick={() => setIsReservationOpen(false)} className="bg-slate-50 p-2 rounded-xl text-slate-400 hover:text-red-500 transition-colors">
+                   <X size={24}/>
+                 </button>
+              </div>
+              
+              <form onSubmit={handleReservationSubmit} className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-6">
+                 {/* Name Field */}
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">الاسم الكريم</label>
+                    <div className="relative group">
+                       <User className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
+                       <input 
+                         type="text" 
+                         required
+                         value={reservationData.name}
+                         onChange={(e) => setReservationData({...reservationData, name: e.target.value})}
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-6 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all text-slate-700 placeholder:text-slate-300" 
+                       />
+                    </div>
+                 </div>
 
-      {showQR && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[130] flex items-center justify-center p-6" onClick={() => setShowQR(false)}>
-           <div className="bg-white rounded-[40px] p-10 w-full max-w-xs text-center space-y-6 animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
-              <div className="bg-gray-50 p-6 rounded-3xl border-4 border-dashed border-gray-200">
-                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://sop-pos.com/${restaurant.slug}`} className="w-full h-auto mx-auto" alt="QR Code" />
-              </div>
-              <div><h3 className="font-black text-xl text-gray-800 mb-1">{restaurant.name}</h3><p className="text-gray-400 text-xs font-bold uppercase tracking-wider">المنيو الإلكتروني</p></div>
-              <div className="flex gap-2">
-                 <button className="flex-1 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90" style={{ backgroundColor: restaurant.themeColor }}><Download size={18} /> تحميل</button>
-                 <button className="bg-gray-100 text-gray-400 p-3 rounded-2xl hover:bg-gray-200"><Share2 size={18} /></button>
-              </div>
+                 {/* Phone Field */}
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">رقم الجوال</label>
+                    <div className="relative group">
+                       <Phone className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={18} />
+                       <input 
+                         type="tel" 
+                         required
+                         value={reservationData.phone}
+                         onChange={(e) => setReservationData({...reservationData, phone: e.target.value})}
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-6 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all text-slate-700 placeholder:text-slate-300" 
+                       />
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    {/* Guests Select */}
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">عدد الضيوف</label>
+                       <div className="relative group">
+                          <Users className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                          <select 
+                            value={reservationData.guests}
+                            onChange={(e) => setReservationData({...reservationData, guests: e.target.value})}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-4 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 appearance-none transition-all text-slate-700"
+                          >
+                             <option>2 ضيوف</option>
+                             <option>4 ضيوف</option>
+                             <option>6 ضيوف</option>
+                             <option>8 ضيوف</option>
+                             <option>مناسبة خاصة (10+)</option>
+                          </select>
+                       </div>
+                    </div>
+                    {/* Date Field */}
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">التاريخ</label>
+                       <div className="relative group">
+                          <input 
+                            type="date" 
+                            required
+                            value={reservationData.date}
+                            onChange={(e) => setReservationData({...reservationData, date: e.target.value})}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-4 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all text-slate-700" 
+                          />
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Time Field */}
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">توقيت الحضور</label>
+                    <div className="relative group">
+                       <Clock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                       <input 
+                         type="time" 
+                         required
+                         value={reservationData.time}
+                         onChange={(e) => setReservationData({...reservationData, time: e.target.value})}
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-6 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all text-slate-700" 
+                       />
+                    </div>
+                 </div>
+
+                 {/* Info Section */}
+                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-3 items-start">
+                    <CheckCircle2 size={18} className="text-blue-600 mt-1 flex-shrink-0" />
+                    <p className="text-[11px] font-bold text-blue-800 leading-relaxed">
+                      سيتم مراجعة طلب حجزك وتأكيده خلال أقل من 15 دقيقة. ستصلك رسالة تأكيد على رقم الجوال المدخل.
+                    </p>
+                 </div>
+
+                 <button 
+                   type="submit"
+                   className="w-full text-white py-5 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all mt-4"
+                   style={{ backgroundColor: restaurant.themeColor }}
+                 >
+                   إرسال طلب الحجز
+                 </button>
+              </form>
            </div>
         </div>
       )}
+
     </div>
   );
 };

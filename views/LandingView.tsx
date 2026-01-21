@@ -11,9 +11,10 @@ import PublicPricingView from './PublicPricingView';
 
 interface LandingViewProps {
   onLogin: () => void;
+  onSelectRestaurant: (id: number) => void;
 }
 
-const LandingView: React.FC<LandingViewProps> = ({ onLogin }) => {
+const LandingView: React.FC<LandingViewProps> = ({ onLogin, onSelectRestaurant }) => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [activeTab, setActiveTab] = useState<'home' | 'features' | 'partners' | 'customers' | 'pricing'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +29,7 @@ const LandingView: React.FC<LandingViewProps> = ({ onLogin }) => {
     switch (activeTab) {
       case 'features': return <PublicFeaturesView />;
       case 'partners': return <PublicPartnersView />;
-      case 'customers': return <PublicCustomersView />;
+      case 'customers': return <PublicCustomersView onVisitMenu={onSelectRestaurant} />;
       case 'pricing': return <PublicPricingView />;
       default: return (
         <>
@@ -54,7 +55,7 @@ const LandingView: React.FC<LandingViewProps> = ({ onLogin }) => {
             </div>
           </section>
 
-          {/* Featured Sections (Simplified for Landing Home) */}
+          {/* Featured Sections */}
           <section className="py-24 bg-slate-50/50 border-y border-slate-100">
              <div className="max-w-7xl mx-auto px-8 text-center">
                 <h3 className="text-2xl font-black text-slate-800 mb-12">لماذا يختار أصحاب المطاعم نظامنا؟</h3>
@@ -117,7 +118,6 @@ const LandingView: React.FC<LandingViewProps> = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-slate-50 p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300">
             <NavItem id="home" label="الرئيسية" />

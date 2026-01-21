@@ -2,7 +2,7 @@
 import { Dish, Order, Reservation, Rating, Category, Restaurant, SubscriptionPlan, PlatformSettings } from '../types';
 import { MOCK_DISHES, MOCK_CATEGORIES, MOCK_RESTAURANT, MOCK_ORDERS, PLANS } from '../constants';
 
-const DB_KEY = 'SOP_DATABASE_V3';
+const DB_KEY = 'SOP_DATABASE_V4';
 
 interface Database {
   restaurants: Restaurant[];
@@ -14,7 +14,10 @@ interface Database {
   plans: SubscriptionPlan[];
   platformSettings: PlatformSettings;
   currentUser: number | null; 
+  adminLoggedIn: boolean;
 }
+
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=1000';
 
 const initializeDB = (): Database => {
   const saved = localStorage.getItem(DB_KEY);
@@ -23,6 +26,8 @@ const initializeDB = (): Database => {
   const initialDB: Database = {
     restaurants: [{
       ...MOCK_RESTAURANT,
+      email: 'owner@test.com',
+      coverImage: DEFAULT_COVER,
       reservationSettings: {
         startTime: '12:00',
         endTime: '23:30',
@@ -37,18 +42,19 @@ const initializeDB = (): Database => {
     orders: MOCK_ORDERS,
     plans: PLANS,
     platformSettings: {
-      siteName: 'SOP POS - نظام إدارة المطاعم',
-      supportEmail: 'support@sop-pos.com',
+      siteName: 'SOP POS',
+      supportEmail: 'admin@sop-pos.com',
       supportPhone: '+966 500 000 000',
       facebookUrl: 'https://facebook.com',
       twitterUrl: 'https://twitter.com',
       instagramUrl: 'https://instagram.com',
-      footerText: 'نظام SOP POS - الحل الأمثل لإدارة المطاعم في المملكة والشرق الأوسط.',
+      footerText: 'نظام SOP - الحل المتكامل لإدارة المطاعم.',
       isMaintenanceMode: false
     },
     reservations: [],
     ratings: [],
-    currentUser: null
+    currentUser: null,
+    adminLoggedIn: false
   };
   localStorage.setItem(DB_KEY, JSON.stringify(initialDB));
   return initialDB;
@@ -58,16 +64,34 @@ export const db = {
   get: () => initializeDB(),
   save: (data: Database) => localStorage.setItem(DB_KEY, JSON.stringify(data)),
   
+  adminLogin: (email: string, pass: string) => {
+    if (email === 'admin@sop-pos.com' && pass === 'admin') {
+      const data = initializeDB();
+      data.adminLoggedIn = true;
+      data.currentUser = null;
+      db.save(data);
+      return true;
+    }
+    return false;
+  },
+
   getCurrentRestaurant: () => {
     const data = initializeDB();
     return data.restaurants.find(r => r.id === data.currentUser) || null;
   },
 
+  setCurrentUser: (id: number | null) => {
+    const data = initializeDB();
+    data.currentUser = id;
+    db.save(data);
+  },
+
   login: (email: string) => {
     const data = initializeDB();
-    const restaurant = data.restaurants.find(r => r.email === email || r.id === 1); 
+    const restaurant = data.restaurants.find(r => r.email === email); 
     if (restaurant) {
       data.currentUser = restaurant.id;
+      data.adminLoggedIn = false;
       db.save(data);
     }
     return restaurant || null;
@@ -83,6 +107,7 @@ export const db = {
       themeColor: '#2563eb',
       fontFamily: 'Cairo',
       socialLinks: [],
+      coverImage: DEFAULT_COVER,
       reservationSettings: {
         startTime: '12:00',
         endTime: '23:00',
@@ -94,6 +119,7 @@ export const db = {
     };
     data.restaurants.push(newRestaurant);
     data.currentUser = newId;
+    data.adminLoggedIn = false;
     db.save(data);
     return newRestaurant;
   },
@@ -101,8 +127,11 @@ export const db = {
   logout: () => {
     const data = initializeDB();
     data.currentUser = null;
+    data.adminLoggedIn = false;
     db.save(data);
   },
+
+  isAdmin: () => initializeDB().adminLoggedIn,
 
   getAllRestaurants: () => initializeDB().restaurants,
   
@@ -122,8 +151,6 @@ export const db = {
   deleteRestaurant: (id: number) => {
     const data = initializeDB();
     data.restaurants = data.restaurants.filter(r => r.id !== id);
-    data.dishes = data.dishes.filter(d => d.restaurantId !== id);
-    data.categories = data.categories.filter(c => c.restaurantId !== id);
     db.save(data);
   },
 
@@ -148,18 +175,23 @@ export const db = {
     db.save(data);
     return newCat;
   },
+  
+  // Fix: Added updateCategory to support category management
   updateCategory: (id: number, updates: Partial<Category>) => {
     const data = initializeDB();
     data.categories = data.categories.map(c => c.id === id ? { ...c, ...updates } : c);
     db.save(data);
   },
+
+  // Fix: Added deleteCategory to support category removal and dish cleanup
   deleteCategory: (id: number) => {
     const data = initializeDB();
     data.categories = data.categories.filter(c => c.id !== id);
+    // Cleanup dishes associated with this category
     data.dishes = data.dishes.filter(d => d.categoryId !== id);
     db.save(data);
   },
-
+  
   getDishes: (restaurantId: number) => initializeDB().dishes.filter(d => d.restaurantId === restaurantId),
   addDish: (dish: Omit<Dish, 'id'>) => {
     const data = initializeDB();
@@ -222,7 +254,6 @@ export const db = {
     db.save(data);
   },
 
-  // Ratings
   getRatings: (restaurantId: number) => initializeDB().ratings.filter(r => r.restaurantId === restaurantId),
   updateRatingStatus: (id: number, isApproved: boolean) => {
     const data = initializeDB();

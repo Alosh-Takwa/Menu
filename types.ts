@@ -87,6 +87,7 @@ export interface Restaurant {
   name: string;
   slug: string;
   logo: string;
+  coverImage?: string;
   planId: number;
   status: 'active' | 'suspended' | 'expired';
   address: string;
