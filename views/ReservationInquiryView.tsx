@@ -14,10 +14,11 @@ const ReservationInquiryView: React.FC<ReservationInquiryViewProps> = ({ restaur
   const [results, setResults] = useState<Reservation[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // Fixed asynchronous search handling
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) return;
-    const found = db.getReservationsByPhone(phone, restaurant.id);
+    const found = await db.getReservationsByPhone(phone, restaurant.id);
     setResults(found);
     setHasSearched(true);
   };

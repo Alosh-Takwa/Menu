@@ -7,24 +7,37 @@ import { Rating } from '../types';
 const RatingsView: React.FC = () => {
   const [ratings, setRatings] = useState<Rating[]>([]);
 
+  // Fixed asynchronous ratings fetching in useEffect
   useEffect(() => {
-    const restaurant = db.getCurrentRestaurant();
-    if (restaurant) {
-      setRatings(db.getRatings(restaurant.id));
-    }
+    const loadRatings = async () => {
+      const restaurant = db.getCurrentRestaurant();
+      if (restaurant) {
+        const allRatings = await db.getRatings(restaurant.id);
+        setRatings(allRatings);
+      }
+    };
+    loadRatings();
   }, []);
 
-  const handleStatusUpdate = (id: number, approved: boolean) => {
-    db.updateRatingStatus(id, approved);
+  // Fixed asynchronous updateRatingStatus call
+  const handleStatusUpdate = async (id: number, approved: boolean) => {
+    await db.updateRatingStatus(id, approved);
     const res = db.getCurrentRestaurant();
-    if (res) setRatings(db.getRatings(res.id));
+    if (res) {
+      const allRatings = await db.getRatings(res.id);
+      setRatings(allRatings);
+    }
   };
 
-  const handleDelete = (id: number) => {
+  // Fixed asynchronous deleteRating call
+  const handleDelete = async (id: number) => {
     if (window.confirm('هل أنت متأكد من حذف هذا التقييم؟')) {
-      db.deleteRating(id);
+      await db.deleteRating(id);
       const res = db.getCurrentRestaurant();
-      if (res) setRatings(db.getRatings(res.id));
+      if (res) {
+        const allRatings = await db.getRatings(res.id);
+        setRatings(allRatings);
+      }
     }
   };
 

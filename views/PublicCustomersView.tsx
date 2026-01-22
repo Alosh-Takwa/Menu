@@ -12,8 +12,13 @@ const PublicCustomersView: React.FC<PublicCustomersViewProps> = ({ onVisitMenu }
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fixed asynchronous data fetching in useEffect
   useEffect(() => {
-    setRestaurants(db.getAllRestaurants().filter(r => r.status === 'active'));
+    const loadRestaurants = async () => {
+      const allRestaurants = await db.getAllRestaurants();
+      setRestaurants(allRestaurants.filter(r => r.status === 'active'));
+    };
+    loadRestaurants();
   }, []);
 
   const filtered = restaurants.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));

@@ -10,17 +10,23 @@ const OrdersView: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'preparing' | 'ready'>('all');
 
   useEffect(() => {
-    const restaurant = db.getCurrentRestaurant();
-    if (restaurant) {
-      setOrders(db.getOrders(restaurant.id));
-    }
+    const loadOrders = async () => {
+      const restaurant = db.getCurrentRestaurant();
+      if (restaurant) {
+        const allOrders = await db.getOrders(restaurant.id);
+        setOrders(allOrders);
+      }
+    };
+    loadOrders();
   }, []);
 
-  const updateStatus = (id: number, status: Order['status']) => {
+  // Fixed asynchronous updateOrderStatus call
+  const updateStatus = async (id: number, status: Order['status']) => {
     const restaurant = db.getCurrentRestaurant();
-    db.updateOrderStatus(id, status);
+    await db.updateOrderStatus(id, status);
     if (restaurant) {
-      setOrders(db.getOrders(restaurant.id));
+      const allOrders = await db.getOrders(restaurant.id);
+      setOrders(allOrders);
     }
   };
 

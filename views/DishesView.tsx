@@ -26,17 +26,22 @@ const DishesView: React.FC = () => {
     image: ''
   });
 
+  // Fixed asynchronous data fetching in useEffect
   useEffect(() => {
-    const res = db.getCurrentRestaurant();
-    if (res) {
-      setRestaurant(res);
-      const cats = db.getCategories(res.id);
-      setCategories(cats);
-      setDishes(db.getDishes(res.id));
-      if (cats.length > 0) {
-        setNewDish(prev => ({ ...prev, categoryId: cats[0].id }));
+    const loadData = async () => {
+      const res = db.getCurrentRestaurant();
+      if (res) {
+        setRestaurant(res);
+        const cats = await db.getCategories(res.id);
+        setCategories(cats);
+        const allDishes = await db.getDishes(res.id);
+        setDishes(allDishes);
+        if (cats.length > 0) {
+          setNewDish(prev => ({ ...prev, categoryId: cats[0].id }));
+        }
       }
-    }
+    };
+    loadData();
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,20 +72,25 @@ const DishesView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  // Fixed asynchronous deleteDish call
+  const handleDelete = async (id: number) => {
     if (window.confirm('هل أنت متأكد من حذف هذا الطبق؟')) {
-      db.deleteDish(id);
-      setDishes(db.getDishes(restaurant?.id || 0));
+      await db.deleteDish(id);
+      if (restaurant) {
+        const updatedDishes = await db.getDishes(restaurant.id);
+        setDishes(updatedDishes);
+      }
     }
   };
 
-  const handleSave = () => {
+  // Fixed asynchronous update and add dish calls
+  const handleSave = async () => {
     if (!newDish.name || !newDish.price || !restaurant) return;
     
     if (isEditMode && currentDishId) {
-      db.updateDish(currentDishId, newDish);
+      await db.updateDish(currentDishId, newDish);
     } else {
-      db.addDish({
+      await db.addDish({
         restaurantId: restaurant.id,
         name: newDish.name || '',
         nameEn: newDish.name || '',
@@ -93,7 +103,8 @@ const DishesView: React.FC = () => {
       });
     }
 
-    setDishes(db.getDishes(restaurant.id));
+    const updatedDishes = await db.getDishes(restaurant.id);
+    setDishes(updatedDishes);
     setIsModalOpen(false);
   };
 

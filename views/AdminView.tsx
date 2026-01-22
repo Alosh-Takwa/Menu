@@ -9,34 +9,51 @@ const AdminView: React.FC = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'restaurants' | 'platform_settings' | 'stats' | 'plans'>('restaurants');
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(db.getPlatformSettings());
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
 
+  // Fixed asynchronous data fetching in useEffect
   useEffect(() => {
-    setRestaurants(db.getAllRestaurants());
-    setPlatformSettings(db.getPlatformSettings());
+    const loadData = async () => {
+      const [allRestaurants, settings] = await Promise.all([
+        db.getAllRestaurants(),
+        db.getPlatformSettings()
+      ]);
+      setRestaurants(allRestaurants);
+      setPlatformSettings(settings);
+    };
+    loadData();
   }, []);
 
-  const handleToggleStatus = (id: number, currentStatus: Restaurant['status']) => {
+  // Fixed asynchronous updateRestaurantStatus call
+  const handleToggleStatus = async (id: number, currentStatus: Restaurant['status']) => {
     const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-    db.updateRestaurantStatus(id, newStatus);
-    setRestaurants(db.getAllRestaurants());
+    await db.updateRestaurantStatus(id, newStatus);
+    const updated = await db.getAllRestaurants();
+    setRestaurants(updated);
   };
 
-  const handleUpdatePlan = (id: number, planId: number) => {
-    db.updateRestaurantPlan(id, planId);
-    setRestaurants(db.getAllRestaurants());
+  // Fixed asynchronous updateRestaurantPlan call
+  const handleUpdatePlan = async (id: number, planId: number) => {
+    await db.updateRestaurantPlan(id, planId);
+    const updated = await db.getAllRestaurants();
+    setRestaurants(updated);
     alert('تم تحديث الباقة بنجاح');
   };
 
-  const handleSavePlatformSettings = () => {
-    db.updatePlatformSettings(platformSettings);
-    alert('تم حفظ إعدادات المنصة بنجاح!');
+  // Fixed asynchronous updatePlatformSettings call
+  const handleSavePlatformSettings = async () => {
+    if (platformSettings) {
+      await db.updatePlatformSettings(platformSettings);
+      alert('تم حفظ إعدادات المنصة بنجاح!');
+    }
   };
 
   const filteredRestaurants = restaurants.filter(r => 
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     r.slug.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (!platformSettings) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-10 font-sans pb-32">

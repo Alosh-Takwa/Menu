@@ -10,23 +10,33 @@ const ReservationsView: React.FC = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'settings'>('list');
 
+  // Fixed asynchronous reservations fetching
   useEffect(() => {
-    const res = db.getCurrentRestaurant();
-    if (res) {
-      setRestaurant(res);
-      setReservations(db.getReservations(res.id));
-    }
+    const loadData = async () => {
+      const res = db.getCurrentRestaurant();
+      if (res) {
+        setRestaurant(res);
+        const allReservations = await db.getReservations(res.id);
+        setReservations(allReservations);
+      }
+    };
+    loadData();
   }, []);
 
-  const handleStatusUpdate = (id: number, status: Reservation['status']) => {
-    db.updateReservationStatus(id, status);
+  // Fixed asynchronous updateReservationStatus call
+  const handleStatusUpdate = async (id: number, status: Reservation['status']) => {
+    await db.updateReservationStatus(id, status);
     const res = db.getCurrentRestaurant();
-    if (res) setReservations(db.getReservations(res.id));
+    if (res) {
+      const allReservations = await db.getReservations(res.id);
+      setReservations(allReservations);
+    }
   };
 
-  const handleSaveSettings = () => {
+  // Fixed asynchronous updateRestaurant call
+  const handleSaveSettings = async () => {
     if (restaurant) {
-      db.updateRestaurant(restaurant.id, restaurant);
+      await db.updateRestaurant(restaurant.id, restaurant);
       alert('تم حفظ إعدادات الحجز بنجاح!');
       setActiveTab('list');
     }

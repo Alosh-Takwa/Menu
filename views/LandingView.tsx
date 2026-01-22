@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { Restaurant } from '../types';
+import { Restaurant, PlatformSettings } from '../types';
 import { Check, ArrowLeft, Zap, Globe, Heart, Star, ExternalLink, Quote, Mail, Phone, Menu, X } from 'lucide-react';
 
 import PublicFeaturesView from './PublicFeaturesView';
@@ -18,12 +18,23 @@ const LandingView: React.FC<LandingViewProps> = ({ onLogin, onSelectRestaurant }
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [activeTab, setActiveTab] = useState<'home' | 'features' | 'partners' | 'customers' | 'pricing'>('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const platformSettings = db.getPlatformSettings();
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
 
+  // Fixed asynchronous data fetching in useEffect
   useEffect(() => {
-    setRestaurants(db.getAllRestaurants().filter(r => r.status === 'active'));
+    const loadData = async () => {
+      const [allRestaurants, settings] = await Promise.all([
+        db.getAllRestaurants(),
+        db.getPlatformSettings()
+      ]);
+      setRestaurants(allRestaurants.filter(r => r.status === 'active'));
+      setPlatformSettings(settings);
+    };
+    loadData();
     window.scrollTo(0, 0);
   }, [activeTab]);
+
+  if (!platformSettings) return null;
 
   const renderContent = () => {
     switch (activeTab) {

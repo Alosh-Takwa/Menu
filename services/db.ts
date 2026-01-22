@@ -1,268 +1,223 @@
 
-import { Dish, Order, Reservation, Rating, Category, Restaurant, SubscriptionPlan, PlatformSettings } from '../types';
-import { MOCK_DISHES, MOCK_CATEGORIES, MOCK_RESTAURANT, MOCK_ORDERS, PLANS } from '../constants';
+import { Dish, Order, Reservation, Rating, Category, Restaurant, PlatformSettings } from '../types';
 
-const DB_KEY = 'SOP_DATABASE_V4';
-
-interface Database {
-  restaurants: Restaurant[];
-  categories: Category[];
-  dishes: Dish[];
-  orders: Order[];
-  reservations: Reservation[];
-  ratings: Rating[];
-  plans: SubscriptionPlan[];
-  platformSettings: PlatformSettings;
-  currentUser: number | null; 
-  adminLoggedIn: boolean;
-}
-
-const DEFAULT_COVER = 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=1000';
-
-const initializeDB = (): Database => {
-  const saved = localStorage.getItem(DB_KEY);
-  if (saved) return JSON.parse(saved);
-
-  const initialDB: Database = {
-    restaurants: [{
-      ...MOCK_RESTAURANT,
-      email: 'owner@test.com',
-      coverImage: DEFAULT_COVER,
-      reservationSettings: {
-        startTime: '12:00',
-        endTime: '23:30',
-        slotDuration: 60,
-        maxGuests: 10,
-        isEnabled: true,
-        advanceBookingDays: 7
-      }
-    }],
-    categories: MOCK_CATEGORIES,
-    dishes: MOCK_DISHES,
-    orders: MOCK_ORDERS,
-    plans: PLANS,
-    platformSettings: {
-      siteName: 'SOP POS',
-      supportEmail: 'admin@sop-pos.com',
-      supportPhone: '+966 500 000 000',
-      facebookUrl: 'https://facebook.com',
-      twitterUrl: 'https://twitter.com',
-      instagramUrl: 'https://instagram.com',
-      footerText: 'نظام SOP - الحل المتكامل لإدارة المطاعم.',
-      isMaintenanceMode: false
-    },
-    reservations: [],
-    ratings: [],
-    currentUser: null,
-    adminLoggedIn: false
-  };
-  localStorage.setItem(DB_KEY, JSON.stringify(initialDB));
-  return initialDB;
-};
+const API_URL = '/api';
 
 export const db = {
-  get: () => initializeDB(),
-  save: (data: Database) => localStorage.setItem(DB_KEY, JSON.stringify(data)),
-  
+  getCurrentRestaurant: (): Restaurant | null => {
+    const user = localStorage.getItem('SOP_USER');
+    return user ? JSON.parse(user) : null;
+  },
+
+  setCurrentUser: (user: any) => {
+    if (user) localStorage.setItem('SOP_USER', JSON.stringify(user));
+    else localStorage.removeItem('SOP_USER');
+  },
+
+  login: async (email: string) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    db.setCurrentUser(user);
+    return user;
+  },
+
+  registerRestaurant: async (data: any) => {
+    const res = await fetch(`${API_URL}/restaurants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  },
+
   adminLogin: (email: string, pass: string) => {
-    if (email === 'admin@sop-pos.com' && pass === 'admin') {
-      const data = initializeDB();
-      data.adminLoggedIn = true;
-      data.currentUser = null;
-      db.save(data);
+    // محاكاة دخول المشرف - يفضل تحويلها لـ API مستقبلاً
+    if (email === 'admin@sop.com' && pass === 'admin123') {
+      localStorage.setItem('SOP_ADMIN', 'true');
       return true;
     }
     return false;
   },
 
-  getCurrentRestaurant: () => {
-    const data = initializeDB();
-    return data.restaurants.find(r => r.id === data.currentUser) || null;
-  },
-
-  setCurrentUser: (id: number | null) => {
-    const data = initializeDB();
-    data.currentUser = id;
-    db.save(data);
-  },
-
-  login: (email: string) => {
-    const data = initializeDB();
-    const restaurant = data.restaurants.find(r => r.email === email); 
-    if (restaurant) {
-      data.currentUser = restaurant.id;
-      data.adminLoggedIn = false;
-      db.save(data);
-    }
-    return restaurant || null;
-  },
-
-  registerRestaurant: (res: Omit<Restaurant, 'id' | 'status' | 'themeColor' | 'fontFamily' | 'socialLinks'>) => {
-    const data = initializeDB();
-    const newId = data.restaurants.length > 0 ? Math.max(...data.restaurants.map(r => r.id)) + 1 : 1;
-    const newRestaurant: Restaurant = {
-      ...res,
-      id: newId,
-      status: 'active',
-      themeColor: '#2563eb',
-      fontFamily: 'Cairo',
-      socialLinks: [],
-      coverImage: DEFAULT_COVER,
-      reservationSettings: {
-        startTime: '12:00',
-        endTime: '23:00',
-        slotDuration: 60,
-        maxGuests: 8,
-        isEnabled: true,
-        advanceBookingDays: 7
-      }
-    };
-    data.restaurants.push(newRestaurant);
-    data.currentUser = newId;
-    data.adminLoggedIn = false;
-    db.save(data);
-    return newRestaurant;
-  },
-
   logout: () => {
-    const data = initializeDB();
-    data.currentUser = null;
-    data.adminLoggedIn = false;
-    db.save(data);
+    db.setCurrentUser(null);
+    localStorage.removeItem('SOP_ADMIN');
   },
 
-  isAdmin: () => initializeDB().adminLoggedIn,
+  isAdmin: () => localStorage.getItem('SOP_ADMIN') === 'true',
 
-  getAllRestaurants: () => initializeDB().restaurants,
-  
-  getPlatformSettings: () => initializeDB().platformSettings,
-  updatePlatformSettings: (settings: PlatformSettings) => {
-    const data = initializeDB();
-    data.platformSettings = settings;
-    db.save(data);
+  // Restaurants
+  getAllRestaurants: async (): Promise<Restaurant[]> => {
+    const res = await fetch(`${API_URL}/restaurants`);
+    return await res.json();
   },
 
-  updateRestaurant: (id: number, updates: Partial<Restaurant>) => {
-    const data = initializeDB();
-    data.restaurants = data.restaurants.map(r => r.id === id ? { ...r, ...updates } : r);
-    db.save(data);
+  updateRestaurant: async (id: number, data: Partial<Restaurant>) => {
+    const res = await fetch(`${API_URL}/restaurants/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
   },
 
-  deleteRestaurant: (id: number) => {
-    const data = initializeDB();
-    data.restaurants = data.restaurants.filter(r => r.id !== id);
-    db.save(data);
+  updateRestaurantStatus: async (id: number, status: string) => {
+    return db.updateRestaurant(id, { status: status as any });
   },
 
-  updateRestaurantStatus: (id: number, status: Restaurant['status']) => {
-    const data = initializeDB();
-    data.restaurants = data.restaurants.map(r => r.id === id ? { ...r, status } : r);
-    db.save(data);
+  updateRestaurantPlan: async (id: number, planId: number) => {
+    return db.updateRestaurant(id, { planId });
   },
 
-  updateRestaurantPlan: (id: number, planId: number) => {
-    const data = initializeDB();
-    data.restaurants = data.restaurants.map(r => r.id === id ? { ...r, planId } : r);
-    db.save(data);
+  // Dishes
+  getDishes: async (restaurantId: number): Promise<Dish[]> => {
+    const res = await fetch(`${API_URL}/dishes?restaurantId=${restaurantId}`);
+    return await res.json();
   },
 
-  // Categories & Dishes
-  getCategories: (restaurantId: number) => initializeDB().categories.filter(c => c.restaurantId === restaurantId),
-  addCategory: (cat: Omit<Category, 'id'>) => {
-    const data = initializeDB();
-    const newCat = { ...cat, id: Date.now() };
-    data.categories.push(newCat);
-    db.save(data);
-    return newCat;
-  },
-  
-  // Fix: Added updateCategory to support category management
-  updateCategory: (id: number, updates: Partial<Category>) => {
-    const data = initializeDB();
-    data.categories = data.categories.map(c => c.id === id ? { ...c, ...updates } : c);
-    db.save(data);
+  addDish: async (dish: any) => {
+    const res = await fetch(`${API_URL}/dishes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dish)
+    });
+    return await res.json();
   },
 
-  // Fix: Added deleteCategory to support category removal and dish cleanup
-  deleteCategory: (id: number) => {
-    const data = initializeDB();
-    data.categories = data.categories.filter(c => c.id !== id);
-    // Cleanup dishes associated with this category
-    data.dishes = data.dishes.filter(d => d.categoryId !== id);
-    db.save(data);
+  updateDish: async (id: number, dish: any) => {
+    const res = await fetch(`${API_URL}/dishes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dish)
+    });
+    return await res.json();
   },
-  
-  getDishes: (restaurantId: number) => initializeDB().dishes.filter(d => d.restaurantId === restaurantId),
-  addDish: (dish: Omit<Dish, 'id'>) => {
-    const data = initializeDB();
-    const newDish = { ...dish, id: Date.now() };
-    data.dishes.push(newDish);
-    db.save(data);
-    return newDish;
+
+  deleteDish: async (id: number) => {
+    const res = await fetch(`${API_URL}/dishes/${id}`, { method: 'DELETE' });
+    return await res.json();
   },
-  updateDish: (id: number, updates: Partial<Dish>) => {
-    const data = initializeDB();
-    data.dishes = data.dishes.map(d => d.id === id ? { ...d, ...updates } : d);
-    db.save(data);
+
+  // Categories
+  getCategories: async (restaurantId: number): Promise<Category[]> => {
+    const res = await fetch(`${API_URL}/categories?restaurantId=${restaurantId}`);
+    return await res.json();
   },
-  deleteDish: (id: number) => {
-    const data = initializeDB();
-    data.dishes = data.dishes.filter(d => d.id !== id);
-    db.save(data);
+
+  addCategory: async (cat: any) => {
+    const res = await fetch(`${API_URL}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cat)
+    });
+    return await res.json();
+  },
+
+  // Added updateCategory method
+  updateCategory: async (id: number, cat: any) => {
+    const res = await fetch(`${API_URL}/categories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cat)
+    });
+    return await res.json();
+  },
+
+  // Added deleteCategory method
+  deleteCategory: async (id: number) => {
+    const res = await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
+    return await res.json();
   },
 
   // Orders
-  getOrders: (restaurantId: number) => initializeDB().orders.filter(o => o.restaurantId === restaurantId),
-  createOrder: (order: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => {
-    const data = initializeDB();
-    const newOrder: Order = {
-      ...order,
-      id: Date.now(),
-      orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toLocaleString('ar-SA')
-    };
-    data.orders.unshift(newOrder);
-    db.save(data);
-    return newOrder;
+  getOrders: async (restaurantId: number): Promise<Order[]> => {
+    const res = await fetch(`${API_URL}/orders?restaurantId=${restaurantId}`);
+    return await res.json();
   },
-  updateOrderStatus: (id: number, status: Order['status']) => {
-    const data = initializeDB();
-    data.orders = data.orders.map(o => o.id === id ? { ...o, status } : o);
-    db.save(data);
+
+  createOrder: async (order: any) => {
+    const res = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    return await res.json();
+  },
+
+  // Added updateOrderStatus method
+  updateOrderStatus: async (id: number, status: string) => {
+    const res = await fetch(`${API_URL}/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    return await res.json();
   },
 
   // Reservations
-  getReservations: (restaurantId: number) => initializeDB().reservations.filter(r => r.restaurantId === restaurantId),
-  getReservationsByPhone: (phone: string, restaurantId: number) => {
-    const data = initializeDB();
-    return data.reservations.filter(r => r.customerPhone === phone && r.restaurantId === restaurantId);
-  },
-  createReservation: (reservation: Omit<Reservation, 'id' | 'status'>) => {
-    const data = initializeDB();
-    const newReservation: Reservation = {
-      ...reservation,
-      id: Date.now(),
-      status: 'pending'
-    };
-    data.reservations.push(newReservation);
-    db.save(data);
-    return newReservation;
-  },
-  updateReservationStatus: (id: number, status: Reservation['status']) => {
-    const data = initializeDB();
-    data.reservations = data.reservations.map(r => r.id === id ? { ...r, status } : r);
-    db.save(data);
+  // Added getReservations method
+  getReservations: async (restaurantId: number): Promise<Reservation[]> => {
+    const res = await fetch(`${API_URL}/reservations?restaurantId=${restaurantId}`);
+    return await res.json();
   },
 
-  getRatings: (restaurantId: number) => initializeDB().ratings.filter(r => r.restaurantId === restaurantId),
-  updateRatingStatus: (id: number, isApproved: boolean) => {
-    const data = initializeDB();
-    data.ratings = data.ratings.map(r => r.id === id ? { ...r, isApproved } : r);
-    db.save(data);
+  // Added updateReservationStatus method
+  updateReservationStatus: async (id: number, status: string) => {
+    const res = await fetch(`${API_URL}/reservations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    return await res.json();
   },
-  deleteRating: (id: number) => {
-    const data = initializeDB();
-    data.ratings = data.ratings.filter(r => r.id !== id);
-    db.save(data);
+
+  // Added getReservationsByPhone method
+  getReservationsByPhone: async (phone: string, restaurantId: number): Promise<Reservation[]> => {
+    const res = await fetch(`${API_URL}/reservations?phone=${phone}&restaurantId=${restaurantId}`);
+    return await res.json();
+  },
+
+  // Ratings
+  // Added getRatings method
+  getRatings: async (restaurantId: number): Promise<Rating[]> => {
+    const res = await fetch(`${API_URL}/ratings?restaurantId=${restaurantId}`);
+    return await res.json();
+  },
+
+  // Added updateRatingStatus method
+  updateRatingStatus: async (id: number, isApproved: boolean) => {
+    const res = await fetch(`${API_URL}/ratings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isApproved })
+    });
+    return await res.json();
+  },
+
+  // Added deleteRating method
+  deleteRating: async (id: number) => {
+    const res = await fetch(`${API_URL}/ratings/${id}`, { method: 'DELETE' });
+    return await res.json();
+  },
+
+  // Platform Settings
+  getPlatformSettings: async (): Promise<PlatformSettings> => {
+    const res = await fetch(`${API_URL}/platform-settings`);
+    return await res.json();
+  },
+
+  // Added updatePlatformSettings method
+  updatePlatformSettings: async (settings: PlatformSettings) => {
+    const res = await fetch(`${API_URL}/platform-settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return await res.json();
   }
 };

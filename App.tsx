@@ -17,9 +17,8 @@ import MenuCustomizationView from './views/MenuCustomizationView';
 import PasswordChangeView from './views/PasswordChangeView';
 import AIChatBot from './components/AIChatBot';
 import { db } from './services/db';
-import { UserRole, Restaurant } from './types';
-// Fix: Added LogIn to lucide-react imports
-import { LayoutGrid, Store, UserCircle, LogOut, Menu, X, LogIn } from 'lucide-react';
+import { UserRole } from './types';
+import { LogOut, Menu, X, LogIn, UserCircle, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>('RESTAURANT');
@@ -28,22 +27,26 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [authPage, setAuthPage] = useState<'landing' | 'login' | 'register'>('landing');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const admin = db.isAdmin();
-    if (admin) {
-      setIsAdmin(true);
-      setRole('ADMIN');
-      setIsLoggedIn(true);
-      setActiveTab('admin');
-    } else {
-      const user = db.getCurrentRestaurant();
-      if (user) {
+    const initializeApp = async () => {
+      const admin = db.isAdmin();
+      if (admin) {
+        setIsAdmin(true);
+        setRole('ADMIN');
         setIsLoggedIn(true);
-        setRole('RESTAURANT');
-        setAuthPage('landing');
+        setActiveTab('admin');
+      } else {
+        const user = db.getCurrentRestaurant();
+        if (user) {
+          setIsLoggedIn(true);
+          setRole('RESTAURANT');
+        }
       }
-    }
+      setLoading(false);
+    };
+    initializeApp();
   }, []);
 
   const handleAuthSuccess = () => {
@@ -70,28 +73,20 @@ const App: React.FC = () => {
     setRole('RESTAURANT');
   };
 
-  const handleSelectRestaurantFromPublic = (id: number) => {
-    db.setCurrentUser(id);
-    setRole('CUSTOMER');
-    window.scrollTo(0, 0);
-  };
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    );
+  }
 
   const renderContent = () => {
     if (role === 'CUSTOMER') return <CustomerMenuView />;
-    
     if (!isLoggedIn) {
-      if (authPage === 'landing') return <LandingView onLogin={() => setAuthPage('login')} onSelectRestaurant={handleSelectRestaurantFromPublic} />;
-      return (
-        <AuthView 
-          type={authPage === 'login' ? 'login' : 'register'} 
-          onSuccess={handleAuthSuccess} 
-          onAdminSuccess={handleAdminSuccess}
-          onSwitch={setAuthPage}
-          onBackToLanding={() => setAuthPage('landing')}
-        />
-      );
+      if (authPage === 'landing') return <LandingView onLogin={() => setAuthPage('login')} onSelectRestaurant={(id) => { db.setCurrentUser(id); setRole('CUSTOMER'); }} />;
+      return <AuthView type={authPage === 'login' ? 'login' : 'register'} onSuccess={handleAuthSuccess} onAdminSuccess={handleAdminSuccess} onSwitch={setAuthPage} onBackToLanding={() => setAuthPage('landing')} />;
     }
-
     if (isAdmin) return <AdminView />;
 
     switch (activeTab) {
@@ -111,14 +106,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row overflow-x-hidden font-sans" dir="rtl">
-      
-      {/* Dev Role Switcher */}
-      <div className="fixed bottom-4 left-4 z-[100] flex gap-1 bg-white/80 backdrop-blur-md p-2 rounded-2xl shadow-xl border border-white">
-        <button onClick={() => setRole('CUSTOMER')} className={`p-3 rounded-xl transition-all ${role === 'CUSTOMER' ? 'bg-blue-600 text-white' : 'text-slate-400'}`} title="واجهة العميل"><UserCircle size={20}/></button>
-        <button onClick={() => { setIsLoggedIn(false); setAuthPage('login'); setRole('RESTAURANT'); }} className={`p-3 rounded-xl transition-all ${!isLoggedIn && role === 'RESTAURANT' ? 'bg-blue-600 text-white' : 'text-slate-400'}`} title="تسجيل الدخول"><LogIn size={20}/></button>
-      </div>
-
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row overflow-x-hidden" dir="rtl">
       {isLoggedIn && !isAdmin && role === 'RESTAURANT' && (
         <>
           <div className="md:hidden flex justify-between items-center p-4 bg-white border-b sticky top-0 z-[60]">
@@ -126,35 +114,16 @@ const App: React.FC = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black">S</div>
                 <span className="font-black text-sm">SOP POS</span>
              </div>
-             <button onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} className="p-2 text-slate-500">
-                {isMobileSidebarOpen ? <X /> : <Menu />}
-             </button>
+             <button onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} className="p-2 text-slate-500"><X /></button>
           </div>
-          
           <div className={`fixed inset-0 z-50 transition-transform ${isMobileSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0`}>
-             <Sidebar 
-                activeTab={activeTab} 
-                setActiveTab={(t) => { setActiveTab(t); setIsMobileSidebarOpen(false); }} 
-                onLogout={handleLogout} 
-             />
+             <Sidebar activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setIsMobileSidebarOpen(false); }} onLogout={handleLogout} />
           </div>
         </>
       )}
-
-      {isAdmin && isLoggedIn && (
-        <div className="fixed top-4 left-4 right-4 z-[70] md:hidden">
-           <button onClick={handleLogout} className="bg-white p-4 rounded-2xl shadow-xl flex items-center gap-2 text-red-500 font-black text-xs">
-              <LogOut size={16}/> تسجيل خروج المشرف
-           </button>
-        </div>
-      )}
-
-      <main className={`flex-1 transition-all ${isLoggedIn && role === 'RESTAURANT' && !isAdmin ? 'md:mr-64' : ''}`}>
-        <div className="animate-in fade-in duration-700">
-          {renderContent()}
-        </div>
+      <main className={`flex-1 ${isLoggedIn && role === 'RESTAURANT' && !isAdmin ? 'md:mr-64' : ''}`}>
+        {renderContent()}
       </main>
-
       {isLoggedIn && role !== 'CUSTOMER' && <AIChatBot />}
     </div>
   );

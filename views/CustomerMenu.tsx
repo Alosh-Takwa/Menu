@@ -32,15 +32,21 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
     time: '20:30'
   });
 
+  // Fixed asynchronous data fetching in useEffect
   useEffect(() => {
-    const res = db.getCurrentRestaurant();
-    if (res) {
+    const loadData = async () => {
+      const res = db.getCurrentRestaurant();
+      if (res) {
         setRestaurant(res);
-        setDishes(db.getDishes(res.id));
-    } else {
-        setDishes(db.getDishes(1));
-    }
-    window.scrollTo(0, 0);
+        const dishesData = await db.getDishes(res.id);
+        setDishes(dishesData);
+      } else {
+        const dishesData = await db.getDishes(1);
+        setDishes(dishesData);
+      }
+      window.scrollTo(0, 0);
+    };
+    loadData();
   }, []);
 
   if (isInquiryOpen) {
@@ -435,7 +441,7 @@ const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({ isPreview = false }
                          required
                          value={reservationData.time}
                          onChange={(e) => setReservationData({...reservationData, time: e.target.value})}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-6 font-bold text-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all text-slate-700" 
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-12 pl-6 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-700" 
                        />
                     </div>
                  </div>
