@@ -150,7 +150,8 @@ const AdminView: React.FC = () => {
                             {res.status === 'active' ? <Ban size={14}/> : <CheckCircle size={14}/>}
                             {res.status === 'active' ? 'تعليق الحساب' : 'تفعيل'}
                          </button>
-                         <button onClick={() => { db.setCurrentUser(res.id); window.open('/menu-preview'); }} className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl active:scale-95"><Eye size={20}/></button>
+                         {/* Fix: Passed res object instead of res.id to db.setCurrentUser */}
+                         <button onClick={() => { db.setCurrentUser(res); window.open('/menu-preview'); }} className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl active:scale-95"><Eye size={20}/></button>
                       </div>
                    </div>
                 ))}

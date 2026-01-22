@@ -11,7 +11,6 @@ const CategoriesView: React.FC = () => {
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [newCat, setNewCat] = useState({ name: '', nameEn: '' });
 
-  // Fixed asynchronous categories fetching in useEffect
   useEffect(() => {
     const loadCategories = async () => {
       const restaurant = db.getCurrentRestaurant();
@@ -36,7 +35,6 @@ const CategoriesView: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Fixed asynchronous update and add category calls
   const handleSave = async () => {
     const restaurant = db.getCurrentRestaurant();
     if (!newCat.name || !restaurant) return;
@@ -58,7 +56,6 @@ const CategoriesView: React.FC = () => {
     setNewCat({ name: '', nameEn: '' });
   };
 
-  // Fixed asynchronous deleteCategory call
   const handleDelete = async (id: number) => {
     if (window.confirm('هل أنت متأكد من حذف هذا القسم؟ سيتم حذف جميع الأطباق المرتبطة به أيضاً.')) {
       await db.deleteCategory(id);
@@ -87,7 +84,7 @@ const CategoriesView: React.FC = () => {
         <div className="p-6 border-b border-gray-50 flex items-center gap-6 bg-gray-50/50">
           <div className="relative flex-1">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input type="text" placeholder="ابحث عن قسم..." className="w-full bg-white border-none rounded-2xl py-3 pr-12 pl-6 text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input type="text" placeholder="ابحث عن قسم..." className="w-full bg-white border-none rounded-2xl py-3 pr-12 pl-6 text-sm font-bold text-slate-900 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
         </div>
 
@@ -128,11 +125,11 @@ const CategoriesView: React.FC = () => {
             <div className="p-10 space-y-8">
               <div>
                 <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">اسم القسم (بالعربية)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value={newCat.name} onChange={(e) => setNewCat({...newCat, name: e.target.value})} placeholder="مثال: المقبلات الشامية" />
+                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder:text-slate-300" value={newCat.name} onChange={(e) => setNewCat({...newCat, name: e.target.value})} placeholder="مثال: المقبلات الشامية" />
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">Category Name (English)</label>
-                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value={newCat.nameEn} onChange={(e) => setNewCat({...newCat, nameEn: e.target.value})} placeholder="Example: Appetizers" />
+                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm placeholder:text-slate-300" value={newCat.nameEn} onChange={(e) => setNewCat({...newCat, nameEn: e.target.value})} placeholder="Example: Appetizers" />
               </div>
             </div>
             <div className="p-10 bg-gray-50 flex gap-6">

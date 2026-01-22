@@ -10,7 +10,6 @@ const ReservationsView: React.FC = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [activeTab, setActiveTab] = useState<'list' | 'settings'>('list');
 
-  // Fixed asynchronous reservations fetching
   useEffect(() => {
     const loadData = async () => {
       const res = db.getCurrentRestaurant();
@@ -23,7 +22,6 @@ const ReservationsView: React.FC = () => {
     loadData();
   }, []);
 
-  // Fixed asynchronous updateReservationStatus call
   const handleStatusUpdate = async (id: number, status: Reservation['status']) => {
     await db.updateReservationStatus(id, status);
     const res = db.getCurrentRestaurant();
@@ -33,7 +31,6 @@ const ReservationsView: React.FC = () => {
     }
   };
 
-  // Fixed asynchronous updateRestaurant call
   const handleSaveSettings = async () => {
     if (restaurant) {
       await db.updateRestaurant(restaurant.id, restaurant);
@@ -115,7 +112,7 @@ const ReservationsView: React.FC = () => {
                       <label className="block text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">وقت بدء استقبال الحجوزات</label>
                       <input 
                         type="time" 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                         value={restaurant?.reservationSettings?.startTime}
                         onChange={e => setRestaurant({...restaurant!, reservationSettings: {...restaurant!.reservationSettings!, startTime: e.target.value}})}
                       />
@@ -124,7 +121,7 @@ const ReservationsView: React.FC = () => {
                       <label className="block text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">وقت نهاية استقبال الحجوزات</label>
                       <input 
                         type="time" 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                         value={restaurant?.reservationSettings?.endTime}
                         onChange={e => setRestaurant({...restaurant!, reservationSettings: {...restaurant!.reservationSettings!, endTime: e.target.value}})}
                       />
@@ -135,7 +132,7 @@ const ReservationsView: React.FC = () => {
                       </label>
                       <input 
                         type="number" 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                         value={restaurant?.reservationSettings?.advanceBookingDays}
                         onChange={e => setRestaurant({...restaurant!, reservationSettings: {...restaurant!.reservationSettings!, advanceBookingDays: Number(e.target.value)}})}
                         placeholder="7 أيام مثلاً"
@@ -148,7 +145,7 @@ const ReservationsView: React.FC = () => {
                    <div>
                       <label className="block text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">مدة الجلسة (بالدقائق)</label>
                       <select 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer appearance-none"
                         value={restaurant?.reservationSettings?.slotDuration}
                         onChange={e => setRestaurant({...restaurant!, reservationSettings: {...restaurant!.reservationSettings!, slotDuration: Number(e.target.value)}})}
                       >
@@ -162,7 +159,7 @@ const ReservationsView: React.FC = () => {
                       <label className="block text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">أقصى عدد ضيوف لكل طاولة</label>
                       <input 
                         type="number" 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                         value={restaurant?.reservationSettings?.maxGuests}
                         onChange={e => setRestaurant({...restaurant!, reservationSettings: {...restaurant!.reservationSettings!, maxGuests: Number(e.target.value)}})}
                       />

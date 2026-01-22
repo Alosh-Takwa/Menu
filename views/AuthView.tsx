@@ -24,40 +24,49 @@ const AuthView: React.FC<AuthViewProps> = ({ type, onSuccess, onAdminSuccess, on
   });
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    setTimeout(() => {
-      if (isAdminMode) {
-        const success = db.adminLogin(formData.email, formData.password);
-        if (success) {
-          onAdminSuccess();
-        } else {
-          setError('بيانات دخول المشرف غير صحيحة.');
-        }
-      } else if (type === 'register') {
-        db.registerRestaurant({
-          name: formData.name,
-          slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-          email: formData.email,
-          phone: '05xxxxxxxx',
-          address: 'العنوان الافتراضي',
-          logo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=200',
-          currency: 'ر.س',
-          planId: formData.planId
-        });
-        onSuccess();
-      } else {
-        const restaurant = db.login(formData.email);
-        if (restaurant) {
+    // محاكاة تأخير الشبكة
+    setTimeout(async () => {
+      try {
+        if (isAdminMode) {
+          const success = db.adminLogin(formData.email, formData.password);
+          if (success) {
+            onAdminSuccess();
+          } else {
+            setError('بيانات دخول المشرف غير صحيحة.');
+          }
+        } else if (type === 'register') {
+          /* Fixed: Added await for registerRestaurant call */
+          await db.registerRestaurant({
+            name: formData.name,
+            slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+            email: formData.email,
+            phone: '05xxxxxxxx',
+            address: 'العنوان الافتراضي',
+            logo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=200',
+            currency: 'ر.س',
+            planId: formData.planId
+          });
           onSuccess();
         } else {
-          setError('لم نجد مطعماً مسجلاً بهذا البريد.');
+          /* Fixed: Added await for login call */
+          const restaurant = await db.login(formData.email);
+          if (restaurant) {
+            onSuccess();
+          } else {
+            setError('لم نجد مطعماً مسجلاً بهذا البريد.');
+          }
         }
+      } catch (err) {
+        console.error(err);
+        setError('حدث خطأ أثناء محاولة الدخول. يرجى المحاولة لاحقاً.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }, 1500);
   };
 

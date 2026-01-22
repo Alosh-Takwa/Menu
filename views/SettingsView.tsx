@@ -63,7 +63,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">اسم المطعم</label>
                 <input 
                   type="text" 
-                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none" 
                   value={restaurant.name} 
                   onChange={e => setRestaurant({...restaurant, name: e.target.value})}
                 />
@@ -76,7 +76,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                     <div className="flex gap-2">
                       <input 
                         type="text" 
-                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 pr-12 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 pr-12 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none" 
                         placeholder="أدخل رمز العملة"
                         value={restaurant.currency}
                         onChange={e => setRestaurant({...restaurant, currency: e.target.value})}
@@ -86,7 +86,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                   ) : (
                     <div className="flex gap-2 items-center">
                       <select 
-                        className="w-full bg-gray-50 border-none rounded-2xl pr-12 pl-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+                        className="w-full bg-gray-50 border-none rounded-2xl pr-12 pl-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
                         value={restaurant.currency}
                         onChange={e => {
                           if (e.target.value === 'custom') {
@@ -110,7 +110,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                   <span className="text-gray-400 text-sm font-bold ml-1">sop.com/</span>
                   <input 
                     type="text" 
-                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-blue-600" 
+                    className="flex-1 bg-transparent border-none outline-none text-sm font-black text-slate-900" 
                     value={restaurant.slug}
                     onChange={e => setRestaurant({...restaurant, slug: e.target.value})}
                   />
@@ -120,7 +120,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">رقم التواصل</label>
                 <input 
                   type="text" 
-                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none" 
                   value={restaurant.phone}
                   onChange={e => setRestaurant({...restaurant, phone: e.target.value})}
                 />
@@ -129,7 +129,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onNavigate }) => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">عنوان المطعم</label>
                 <input 
                   type="text" 
-                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 font-bold text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none" 
                   value={restaurant.address}
                   onChange={e => setRestaurant({...restaurant, address: e.target.value})}
                 />

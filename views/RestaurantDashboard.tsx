@@ -1,14 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, ShoppingBag, Star, AlertCircle, ArrowUpRight, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, ShoppingBag, Star, ArrowUpRight } from 'lucide-react';
 import { db } from '../services/db';
 import { Order, Dish } from '../types';
 
 const RestaurantDashboardView: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
-  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ sales: 0, count: 0, reservations: 0, rating: 4.8 });
   const [restaurant, setRestaurant] = useState(db.getCurrentRestaurant());
 
@@ -17,38 +16,25 @@ const RestaurantDashboardView: React.FC = () => {
       const res = db.getCurrentRestaurant();
       if (res) {
         setRestaurant(res);
-        try {
-          const [allOrders, allDishes] = await Promise.all([
-            db.getOrders(res.id),
-            db.getDishes(res.id)
-          ]);
-          
-          setOrders(allOrders.slice(0, 5));
-          setDishes(allDishes);
-          
-          const totalSales = allOrders.reduce((acc, curr) => acc + curr.total, 0);
-          setStats({
-            sales: totalSales,
-            count: allOrders.length,
-            reservations: 0, // تحديث لاحقاً عند ربط الحجوزات
-            rating: 4.8
-          });
-        } catch (err) {
-          console.error("Failed to load dashboard data", err);
-        }
+        // Fix: Properly await asynchronous operations to resolve Promises before using slice, reduce, or length
+        const allOrders = await db.getOrders(res.id);
+        const allDishes = await db.getDishes(res.id);
+        const allReservations = await db.getReservations(res.id);
+        
+        setOrders(allOrders.slice(0, 5));
+        setDishes(allDishes);
+        
+        const totalSales = allOrders.reduce((acc, curr) => acc + curr.total, 0);
+        setStats({
+          sales: totalSales,
+          count: allOrders.length,
+          reservations: allReservations.length,
+          rating: 4.8
+        });
       }
-      setLoading(false);
     };
     loadData();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center text-blue-600">
-        <Loader2 className="animate-spin" size={48} />
-      </div>
-    );
-  }
 
   const data = [
     { name: 'السبت', sales: stats.sales * 0.1 },

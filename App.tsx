@@ -17,8 +17,8 @@ import MenuCustomizationView from './views/MenuCustomizationView';
 import PasswordChangeView from './views/PasswordChangeView';
 import AIChatBot from './components/AIChatBot';
 import { db } from './services/db';
-import { UserRole } from './types';
-import { LogOut, Menu, X, LogIn, UserCircle, Loader2 } from 'lucide-react';
+import { UserRole, Restaurant } from './types';
+import { X, ArrowRight } from 'lucide-react';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>('RESTAURANT');
@@ -27,26 +27,21 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [authPage, setAuthPage] = useState<'landing' | 'login' | 'register'>('landing');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initializeApp = async () => {
-      const admin = db.isAdmin();
-      if (admin) {
-        setIsAdmin(true);
-        setRole('ADMIN');
+    const admin = db.isAdmin();
+    if (admin) {
+      setIsAdmin(true);
+      setRole('ADMIN');
+      setIsLoggedIn(true);
+      setActiveTab('admin');
+    } else {
+      const user = db.getCurrentRestaurant();
+      if (user) {
         setIsLoggedIn(true);
-        setActiveTab('admin');
-      } else {
-        const user = db.getCurrentRestaurant();
-        if (user) {
-          setIsLoggedIn(true);
-          setRole('RESTAURANT');
-        }
+        setRole('RESTAURANT');
       }
-      setLoading(false);
-    };
-    initializeApp();
+    }
   }, []);
 
   const handleAuthSuccess = () => {
@@ -67,27 +62,38 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     db.logout();
-    setIsLoggedIn(false);
-    setIsAdmin(false);
-    setAuthPage('landing');
-    setRole('RESTAURANT');
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-blue-600" size={48} />
-      </div>
-    );
-  }
+  const handleSelectRestaurant = async (id: number) => {
+    const restaurants = await db.getAllRestaurants();
+    const selected = restaurants.find(r => r.id === id);
+    if (selected) {
+      db.setCurrentUser(selected);
+      setRole('CUSTOMER');
+    }
+  };
 
   const renderContent = () => {
-    if (role === 'CUSTOMER') return <CustomerMenuView />;
+    if (role === 'CUSTOMER') {
+      return (
+        <div className="relative">
+          <button 
+            onClick={() => isLoggedIn ? setRole(isAdmin ? 'ADMIN' : 'RESTAURANT') : setAuthPage('landing')}
+            className="fixed top-4 left-4 z-[200] bg-white/80 backdrop-blur px-4 py-2 rounded-xl border shadow-sm font-black text-xs flex items-center gap-2 hover:bg-white transition-all"
+          >
+            <ArrowRight size={16} /> العودة للمنصة
+          </button>
+          <CustomerMenuView />
+        </div>
+      );
+    }
+
     if (!isLoggedIn) {
-      if (authPage === 'landing') return <LandingView onLogin={() => setAuthPage('login')} onSelectRestaurant={(id) => { db.setCurrentUser(id); setRole('CUSTOMER'); }} />;
+      if (authPage === 'landing') return <LandingView onLogin={() => setAuthPage('login')} onSelectRestaurant={handleSelectRestaurant} />;
       return <AuthView type={authPage === 'login' ? 'login' : 'register'} onSuccess={handleAuthSuccess} onAdminSuccess={handleAdminSuccess} onSwitch={setAuthPage} onBackToLanding={() => setAuthPage('landing')} />;
     }
-    if (isAdmin) return <AdminView />;
+
+    if (isAdmin && activeTab === 'admin') return <AdminView />;
 
     switch (activeTab) {
       case 'dashboard': return <RestaurantDashboardView />;
@@ -107,7 +113,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row overflow-x-hidden" dir="rtl">
-      {isLoggedIn && !isAdmin && role === 'RESTAURANT' && (
+      {isLoggedIn && role !== 'CUSTOMER' && (
         <>
           <div className="md:hidden flex justify-between items-center p-4 bg-white border-b sticky top-0 z-[60]">
              <div className="flex items-center gap-2">
@@ -121,7 +127,7 @@ const App: React.FC = () => {
           </div>
         </>
       )}
-      <main className={`flex-1 ${isLoggedIn && role === 'RESTAURANT' && !isAdmin ? 'md:mr-64' : ''}`}>
+      <main className={`flex-1 ${isLoggedIn && role !== 'CUSTOMER' ? 'md:mr-64' : ''}`}>
         {renderContent()}
       </main>
       {isLoggedIn && role !== 'CUSTOMER' && <AIChatBot />}

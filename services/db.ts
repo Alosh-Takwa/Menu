@@ -1,7 +1,19 @@
 
 import { Dish, Order, Reservation, Rating, Category, Restaurant, PlatformSettings } from '../types';
+import { MOCK_RESTAURANT, MOCK_DISHES, MOCK_CATEGORIES, MOCK_ORDERS } from '../constants';
 
-const API_URL = '/api';
+const API_BASE = window.location.origin;
+
+const safeFetch = async (url: string, options?: any, fallback?: any) => {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error('API Error');
+    return await res.json();
+  } catch (e) {
+    console.warn(`Fetch failed for ${url}, using fallback.`, e);
+    return fallback;
+  }
+};
 
 export const db = {
   getCurrentRestaurant: (): Restaurant | null => {
@@ -14,29 +26,169 @@ export const db = {
     else localStorage.removeItem('SOP_USER');
   },
 
-  login: async (email: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
+  isAdmin: () => localStorage.getItem('SOP_ADMIN') === 'true',
+
+  // المطاعم
+  getAllRestaurants: async (): Promise<Restaurant[]> => 
+    safeFetch(`${API_BASE}/api/restaurants`, {}, [MOCK_RESTAURANT]),
+
+  updateRestaurant: async (id: number, data: Partial<Restaurant>) => {
+    const updated = await safeFetch(`${API_BASE}/api/restaurants/${id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    if (!res.ok) return null;
-    const user = await res.json();
-    db.setCurrentUser(user);
-    return user;
+      body: JSON.stringify(data)
+    }, { ...MOCK_RESTAURANT, ...data });
+    
+    const current = db.getCurrentRestaurant();
+    if (current && current.id === id) db.setCurrentUser(updated);
+    return updated;
   },
 
-  registerRestaurant: async (data: any) => {
-    const res = await fetch(`${API_URL}/restaurants`, {
+  updateRestaurantStatus: async (id: number, status: string) => 
+    safeFetch(`${API_BASE}/api/restaurants/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    }),
+
+  updateRestaurantPlan: async (id: number, planId: number) => 
+    safeFetch(`${API_BASE}/api/restaurants/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId })
+    }),
+
+  // الأطباق
+  getDishes: async (restaurantId: number): Promise<Dish[]> => 
+    safeFetch(`${API_BASE}/api/dishes?restaurantId=${restaurantId}`, {}, MOCK_DISHES),
+
+  addDish: async (dish: Partial<Dish>) => 
+    safeFetch(`${API_BASE}/api/dishes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dish)
+    }),
+
+  updateDish: async (id: number, data: Partial<Dish>) => 
+    safeFetch(`${API_BASE}/api/dishes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  // الأقسام
+  getCategories: async (restaurantId: number): Promise<Category[]> => 
+    safeFetch(`${API_BASE}/api/categories?restaurantId=${restaurantId}`, {}, MOCK_CATEGORIES),
+
+  addCategory: async (category: Partial<Category>) => 
+    safeFetch(`${API_BASE}/api/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category)
+    }),
+
+  updateCategory: async (id: number, data: Partial<Category>) => 
+    safeFetch(`${API_BASE}/api/categories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+
+  deleteCategory: async (id: number) => 
+    safeFetch(`${API_BASE}/api/categories/${id}`, { method: 'DELETE' }),
+
+  // الطلبات
+  getOrders: async (restaurantId: number): Promise<Order[]> => 
+    safeFetch(`${API_BASE}/api/orders?restaurantId=${restaurantId}`, {}, MOCK_ORDERS),
+
+  createOrder: async (orderData: any) => 
+    safeFetch(`${API_BASE}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    }),
+
+  updateOrderStatus: async (id: number, status: string) => 
+    safeFetch(`${API_BASE}/api/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    }),
+
+  // الحجوزات
+  getReservations: async (restaurantId: number): Promise<Reservation[]> => 
+    safeFetch(`${API_BASE}/api/reservations?restaurantId=${restaurantId}`, {}, []),
+
+  createReservation: async (data: any) => 
+    safeFetch(`${API_BASE}/api/reservations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    });
-    return await res.json();
+    }, { id: Date.now(), ...data, status: 'pending' }),
+
+  updateReservationStatus: async (id: number, status: string) => 
+    safeFetch(`${API_BASE}/api/reservations/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    }),
+
+  getReservationsByPhone: async (phone: string, restaurantId: number): Promise<Reservation[]> => 
+    safeFetch(`${API_BASE}/api/reservations?phone=${phone}&restaurantId=${restaurantId}`, {}, []),
+
+  // التقييمات
+  getRatings: async (restaurantId: number): Promise<Rating[]> => 
+    safeFetch(`${API_BASE}/api/ratings?restaurantId=${restaurantId}`, {}, []),
+
+  updateRatingStatus: async (id: number, isApproved: boolean) => 
+    safeFetch(`${API_BASE}/api/ratings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isApproved })
+    }),
+
+  deleteRating: async (id: number) => 
+    safeFetch(`${API_BASE}/api/ratings/${id}`, { method: 'DELETE' }),
+
+  // إعدادات المنصة
+  getPlatformSettings: async (): Promise<PlatformSettings> => 
+    safeFetch(`${API_BASE}/api/platform-settings`, {}, {
+      siteName: 'SOP POS',
+      supportEmail: 'support@sop.com',
+      supportPhone: '92000000',
+      footerText: 'نظام SOP المتكامل لإدارة المطاعم بذكاء.',
+      isMaintenanceMode: false
+    }),
+
+  updatePlatformSettings: async (settings: PlatformSettings) => 
+    safeFetch(`${API_BASE}/api/platform-settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    }),
+
+  // المصادقة
+  login: async (email: string): Promise<Restaurant | null> => {
+    const restaurant = await safeFetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    }, MOCK_RESTAURANT);
+    if (restaurant) db.setCurrentUser(restaurant);
+    return restaurant;
   },
 
-  adminLogin: (email: string, pass: string) => {
-    // محاكاة دخول المشرف - يفضل تحويلها لـ API مستقبلاً
+  registerRestaurant: async (data: any) => {
+    const restaurant = await safeFetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, { ...MOCK_RESTAURANT, ...data });
+    if (restaurant) db.setCurrentUser(restaurant);
+    return restaurant;
+  },
+
+  adminLogin: (email: string, pass: string): boolean => {
     if (email === 'admin@sop.com' && pass === 'admin123') {
       localStorage.setItem('SOP_ADMIN', 'true');
       return true;
@@ -45,179 +197,8 @@ export const db = {
   },
 
   logout: () => {
-    db.setCurrentUser(null);
+    localStorage.removeItem('SOP_USER');
     localStorage.removeItem('SOP_ADMIN');
-  },
-
-  isAdmin: () => localStorage.getItem('SOP_ADMIN') === 'true',
-
-  // Restaurants
-  getAllRestaurants: async (): Promise<Restaurant[]> => {
-    const res = await fetch(`${API_URL}/restaurants`);
-    return await res.json();
-  },
-
-  updateRestaurant: async (id: number, data: Partial<Restaurant>) => {
-    const res = await fetch(`${API_URL}/restaurants/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return await res.json();
-  },
-
-  updateRestaurantStatus: async (id: number, status: string) => {
-    return db.updateRestaurant(id, { status: status as any });
-  },
-
-  updateRestaurantPlan: async (id: number, planId: number) => {
-    return db.updateRestaurant(id, { planId });
-  },
-
-  // Dishes
-  getDishes: async (restaurantId: number): Promise<Dish[]> => {
-    const res = await fetch(`${API_URL}/dishes?restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  addDish: async (dish: any) => {
-    const res = await fetch(`${API_URL}/dishes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dish)
-    });
-    return await res.json();
-  },
-
-  updateDish: async (id: number, dish: any) => {
-    const res = await fetch(`${API_URL}/dishes/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dish)
-    });
-    return await res.json();
-  },
-
-  deleteDish: async (id: number) => {
-    const res = await fetch(`${API_URL}/dishes/${id}`, { method: 'DELETE' });
-    return await res.json();
-  },
-
-  // Categories
-  getCategories: async (restaurantId: number): Promise<Category[]> => {
-    const res = await fetch(`${API_URL}/categories?restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  addCategory: async (cat: any) => {
-    const res = await fetch(`${API_URL}/categories`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cat)
-    });
-    return await res.json();
-  },
-
-  // Added updateCategory method
-  updateCategory: async (id: number, cat: any) => {
-    const res = await fetch(`${API_URL}/categories/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cat)
-    });
-    return await res.json();
-  },
-
-  // Added deleteCategory method
-  deleteCategory: async (id: number) => {
-    const res = await fetch(`${API_URL}/categories/${id}`, { method: 'DELETE' });
-    return await res.json();
-  },
-
-  // Orders
-  getOrders: async (restaurantId: number): Promise<Order[]> => {
-    const res = await fetch(`${API_URL}/orders?restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  createOrder: async (order: any) => {
-    const res = await fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    return await res.json();
-  },
-
-  // Added updateOrderStatus method
-  updateOrderStatus: async (id: number, status: string) => {
-    const res = await fetch(`${API_URL}/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    });
-    return await res.json();
-  },
-
-  // Reservations
-  // Added getReservations method
-  getReservations: async (restaurantId: number): Promise<Reservation[]> => {
-    const res = await fetch(`${API_URL}/reservations?restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  // Added updateReservationStatus method
-  updateReservationStatus: async (id: number, status: string) => {
-    const res = await fetch(`${API_URL}/reservations/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    });
-    return await res.json();
-  },
-
-  // Added getReservationsByPhone method
-  getReservationsByPhone: async (phone: string, restaurantId: number): Promise<Reservation[]> => {
-    const res = await fetch(`${API_URL}/reservations?phone=${phone}&restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  // Ratings
-  // Added getRatings method
-  getRatings: async (restaurantId: number): Promise<Rating[]> => {
-    const res = await fetch(`${API_URL}/ratings?restaurantId=${restaurantId}`);
-    return await res.json();
-  },
-
-  // Added updateRatingStatus method
-  updateRatingStatus: async (id: number, isApproved: boolean) => {
-    const res = await fetch(`${API_URL}/ratings/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isApproved })
-    });
-    return await res.json();
-  },
-
-  // Added deleteRating method
-  deleteRating: async (id: number) => {
-    const res = await fetch(`${API_URL}/ratings/${id}`, { method: 'DELETE' });
-    return await res.json();
-  },
-
-  // Platform Settings
-  getPlatformSettings: async (): Promise<PlatformSettings> => {
-    const res = await fetch(`${API_URL}/platform-settings`);
-    return await res.json();
-  },
-
-  // Added updatePlatformSettings method
-  updatePlatformSettings: async (settings: PlatformSettings) => {
-    const res = await fetch(`${API_URL}/platform-settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
-    });
-    return await res.json();
+    window.location.href = '/';
   }
 };

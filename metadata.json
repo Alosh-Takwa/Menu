@@ -2,6 +2,7 @@
   "name": "SOP - نظام إدارة المطاعم الشامل",
   "description": "نظام SaaS متطور لإدارة المطاعم يشمل المنيو الإلكتروني، الطلبات، الحجوزات، والذكاء الاصطناعي.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ]
 }

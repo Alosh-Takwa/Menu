@@ -33,6 +33,7 @@ export const MOCK_RESTAURANT: Restaurant = {
   name: 'مطعم مذاق الشرق',
   slug: 'mazaq-alsharq',
   logo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=200',
+  coverImage: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=1200',
   planId: 2,
   status: 'active',
   address: 'الرياض - حي الملز - شارع الستين',
@@ -40,12 +41,19 @@ export const MOCK_RESTAURANT: Restaurant = {
   currency: 'ر.س',
   themeColor: '#2563eb',
   fontFamily: 'Cairo',
-  // Fix: Added email field for the mock restaurant
   email: 'contact@mazaq-alsharq.com',
   socialLinks: [
     { platform: 'instagram', url: 'https://instagram.com/' },
     { platform: 'twitter', url: 'https://twitter.com/' }
-  ]
+  ],
+  reservationSettings: {
+    startTime: '12:00',
+    endTime: '23:30',
+    slotDuration: 60,
+    maxGuests: 10,
+    isEnabled: true,
+    advanceBookingDays: 7
+  }
 };
 
 export const MOCK_CATEGORIES: Category[] = [
@@ -62,7 +70,7 @@ export const MOCK_DISHES: Dish[] = [
     categoryId: 1,
     name: 'تبولة لبنانية',
     nameEn: 'Tabbouleh',
-    description: 'بقدونس مفروم مع برغل، طماطم، ونعناع بزيت الزيتون',
+    description: 'بقدونس مفروم مع برغل، طماطم، ونعناع بزيت الزيتون البكر الممتاز',
     price: 18,
     image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=400',
     isAvailable: true,
@@ -74,7 +82,7 @@ export const MOCK_DISHES: Dish[] = [
     categoryId: 2,
     name: 'كباب دجاج مشوي',
     nameEn: 'Grilled Chicken Kebab',
-    description: 'أسياخ كباب دجاج متبل بخلطة الشرق الخاصة',
+    description: 'أسياخ كباب دجاج متبل بخلطة الشرق الخاصة، تقدم مع الثومية والخبز الساخن',
     price: 35,
     image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&q=80&w=400',
     isAvailable: true,
@@ -86,11 +94,23 @@ export const MOCK_DISHES: Dish[] = [
     categoryId: 3,
     name: 'بقلاوة بالفستق',
     nameEn: 'Pistachio Baklawa',
-    description: 'رقائق العجين الهشة محشوة بالفستق الحلبي الفاخر',
+    description: 'رقائق العجين الهشة محشوة بالفستق الحلبي الفاخر والسمن البري المقطر بالقطر',
     price: 22,
     image: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&q=80&w=400',
     isAvailable: true,
     preparationTime: 15
+  },
+  {
+    id: 4,
+    restaurantId: 1,
+    categoryId: 4,
+    name: 'ليمون ونعناع',
+    nameEn: 'Lemon Mint',
+    description: 'عصير ليمون طازج مع أوراق النعناع المنعشة والثلج المجروش',
+    price: 15,
+    image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=400',
+    isAvailable: true,
+    preparationTime: 5
   }
 ];
 
